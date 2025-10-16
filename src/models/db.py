@@ -6,7 +6,7 @@ from pathlib import Path
 from src.services.settings import get_data_dir
 
 
-DB_FILENAME = "timely.db"
+DB_FILENAME = "solia.db"
 
 
 def _db_path() -> Path:

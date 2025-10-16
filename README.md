@@ -1,4 +1,4 @@
-# Timely Time Tracking
+# Solia Time Tracking
 
 Windows desktop time tracker built with PySide6. Profiles, start/stop toggle, history, CSV export, tray, and dark mode.
 
@@ -17,8 +17,8 @@ Windows desktop time tracker built with PySide6. Profiles, start/stop toggle, hi
 ## Build (Windows .exe)
 
 ```bash
-pyinstaller --onefile --noconsole --icon src/ui/resources/app.ico --name Timely src/app.py
+pyinstaller --onefile --noconsole --icon src/ui/resources/app.ico --name Solia src/app.py
 ```
 
-Outputs `dist/Timely.exe`.
+Outputs `dist/Solia.exe`.
 Time Tracking Software

@@ -35,7 +35,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.repo = repository
         self.timer = timer_manager
-        self.setWindowTitle("Timely Time Tracking")
+        self.setWindowTitle("Solia Time Tracking")
 
         self.settings_store = SettingsStore()
         self.settings = self.settings_store.load()

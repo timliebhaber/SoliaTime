@@ -15,8 +15,8 @@ def main() -> int:
     ensure_app_dirs()
 
     app = QApplication(sys.argv)
-    app.setApplicationName("Timely Time Tracking")
-    app.setOrganizationName("Timely")
+    app.setApplicationName("Solia Time Tracking")
+    app.setOrganizationName("Solia")
 
     conn = get_connection()
     repo = Repository(conn)

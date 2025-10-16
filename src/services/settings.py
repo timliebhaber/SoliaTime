@@ -8,8 +8,8 @@ from typing import Any
 from appdirs import user_data_dir
 
 
-APP_NAME = "TimelyTimeTracking"
-APP_AUTHOR = "Timely"
+APP_NAME = "SoliaTimeTracking"
+APP_AUTHOR = "Solia"
 
 
 def get_data_dir() -> Path:

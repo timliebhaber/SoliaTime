@@ -40,7 +40,7 @@ class TimerManager(QObject):
         self.active_entry_changed.emit(None)
 
     def _log_event(self, event: str, profile_id: int, profile_name: str, note: str) -> None:
-        log_path = get_data_dir() / "timely.log"
+        log_path = get_data_dir() / "solia.log"
         try:
             log_path.parent.mkdir(parents=True, exist_ok=True)
             log_path.open("a", encoding="utf-8").write(
