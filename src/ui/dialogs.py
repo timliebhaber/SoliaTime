@@ -4,7 +4,17 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QDialogButtonBox,
 
 
 class ProfileDialog(QDialog):
-    def __init__(self, parent=None, title: str = "Profile", name: str = "", target_seconds: int | None = None) -> None:
+    def __init__(
+        self,
+        parent=None,
+        title: str = "Profile",
+        name: str = "",
+        target_seconds: int | None = None,
+        company: str | None = None,
+        contact_person: str | None = None,
+        email: str | None = None,
+        phone: str | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setWindowTitle(title)
         layout = QVBoxLayout(self)
@@ -21,6 +31,23 @@ class ProfileDialog(QDialog):
             self.target_edit.setText(f"{h:02d}:{m:02d}")
         layout.addWidget(QLabel("Daily Target (HH:MM)"))
         layout.addWidget(self.target_edit)
+        # Contact fields
+        self.company_edit = QLineEdit(self)
+        self.company_edit.setText(company or "")
+        self.contact_edit = QLineEdit(self)
+        self.contact_edit.setText(contact_person or "")
+        self.email_edit = QLineEdit(self)
+        self.email_edit.setText(email or "")
+        self.phone_edit = QLineEdit(self)
+        self.phone_edit.setText(phone or "")
+        layout.addWidget(QLabel("Company"))
+        layout.addWidget(self.company_edit)
+        layout.addWidget(QLabel("Contact Person"))
+        layout.addWidget(self.contact_edit)
+        layout.addWidget(QLabel("Email"))
+        layout.addWidget(self.email_edit)
+        layout.addWidget(QLabel("Phone"))
+        layout.addWidget(self.phone_edit)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
@@ -46,6 +73,13 @@ class ProfileDialog(QDialog):
             return hours * 3600 + minutes * 60
         except Exception:
             return None
+
+    def get_contact_fields(self) -> tuple[str | None, str | None, str | None, str | None]:
+        company = self.company_edit.text().strip() or None
+        contact = self.contact_edit.text().strip() or None
+        email = self.email_edit.text().strip() or None
+        phone = self.phone_edit.text().strip() or None
+        return company, contact, email, phone
 
 
 class EntryDialog(QDialog):

@@ -10,10 +10,20 @@ class Repository:
         self.conn = conn
 
     # Profiles
-    def create_profile(self, name: str, color: str | None = None, target_seconds: int | None = None) -> int:
+    def create_profile(
+        self,
+        name: str,
+        color: str | None = None,
+        target_seconds: int | None = None,
+        company: str | None = None,
+        contact_person: str | None = None,
+        email: str | None = None,
+        phone: str | None = None,
+    ) -> int:
         with self.conn:
             cur = self.conn.execute(
-                "INSERT INTO profiles(name, color, target_seconds) VALUES(?, ?, ?)", (name, color, target_seconds)
+                "INSERT INTO profiles(name, color, archived, target_seconds, company, contact_person, email, phone) VALUES(?, ?, 0, ?, ?, ?, ?, ?)",
+                (name, color, target_seconds, company, contact_person, email, phone),
             )
             return cur.lastrowid
 
@@ -35,6 +45,20 @@ class Repository:
             self.conn.execute(
                 "UPDATE profiles SET target_seconds = ? WHERE id = ?",
                 (target_seconds, profile_id),
+            )
+
+    def update_profile_contacts(
+        self,
+        profile_id: int,
+        company: str | None,
+        contact_person: str | None,
+        email: str | None,
+        phone: str | None,
+    ) -> None:
+        with self.conn:
+            self.conn.execute(
+                "UPDATE profiles SET company = ?, contact_person = ?, email = ?, phone = ? WHERE id = ?",
+                (company, contact_person, email, phone, profile_id),
             )
 
     def set_profile_archived(self, profile_id: int, archived: bool) -> None:
@@ -129,4 +153,30 @@ class Repository:
         with self.conn:
             self.conn.execute(sql, ids)
 
+
+    # Profile todos
+    def list_profile_todos(self, profile_id: int) -> list[sqlite3.Row]:
+        return self.conn.execute(
+            "SELECT * FROM profile_todos WHERE profile_id = ? ORDER BY created_ts ASC, id ASC",
+            (profile_id,)
+        ).fetchall()
+
+    def add_profile_todo(self, profile_id: int, text: str) -> int:
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT INTO profile_todos(profile_id, text, completed) VALUES(?, ?, 0)",
+                (profile_id, text),
+            )
+            return cur.lastrowid
+
+    def delete_profile_todo(self, todo_id: int) -> None:
+        with self.conn:
+            self.conn.execute("DELETE FROM profile_todos WHERE id = ?", (todo_id,))
+
+    def set_profile_todo_completed(self, todo_id: int, completed: bool) -> None:
+        with self.conn:
+            self.conn.execute(
+                "UPDATE profile_todos SET completed = ? WHERE id = ?",
+                (1 if completed else 0, todo_id),
+            )
 

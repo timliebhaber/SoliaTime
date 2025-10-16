@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 import sys
+import math
 from typing import Optional
 from pathlib import Path
 
@@ -12,8 +13,10 @@ from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
+    QFormLayout,
     QPushButton,
     QListWidget,
+    QListWidgetItem,
     QLabel,
     QLineEdit,
     QTableWidget,
@@ -22,6 +25,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QDialog,
     QStyle,
+    QStackedWidget,
 )
 class CircularProgress(QWidget):
     """Non-interactive circular progress displaying elapsed vs target seconds."""
@@ -64,6 +68,14 @@ class CircularProgress(QWidget):
             start_angle = 90 * 16
             span_angle = int(-360 * 16 * ratio)
             painter.drawArc(rect, start_angle, span_angle)
+
+        # Draw centered percentage text
+        painter.setPen(QPen(self.palette().text().color()))
+        percent_text = "—%"
+        if self._target_seconds and self._target_seconds > 0:
+            pct = int(max(0, min(100, math.ceil(ratio * 100))))
+            percent_text = f"{pct}%"
+        painter.drawText(self.rect(), Qt.AlignCenter, percent_text)
 
 
 from src.models.repository import Repository
@@ -116,7 +128,7 @@ class MainWindow(QMainWindow):
         side = QVBoxLayout()
         self.profiles_list = QListWidget()
         self.add_profile_btn = QPushButton("Add Profile")
-        self.edit_profile_btn = QPushButton("Edit Target…")
+        self.edit_profile_btn = QPushButton("Edit Profile")
         side.addWidget(QLabel("Profiles"))
         side.addWidget(self.profiles_list)
         side.addWidget(self.add_profile_btn)
@@ -125,8 +137,12 @@ class MainWindow(QMainWindow):
         self.profiles_list.setContextMenuPolicy(Qt.CustomContextMenu)
         self.profiles_list.customContextMenuRequested.connect(self._profiles_context_menu)
 
-        # Main area
-        main = QVBoxLayout()
+        # Main area -> stacked: tracking page + profile settings page
+        self.stack = QStackedWidget()
+
+        # Tracking page
+        self.tracking_page = QWidget()
+        main = QVBoxLayout(self.tracking_page)
         top = QHBoxLayout()
         self.toggle_btn = QPushButton("Start")
         self.elapsed_label = QLabel("00:00:00")
@@ -149,9 +165,51 @@ class MainWindow(QMainWindow):
 
         main.addLayout(top)
         main.addWidget(self.table, 1)
+        self.stack.addWidget(self.tracking_page)
+
+        # Profile settings page
+        self.profile_page = QWidget()
+        form = QFormLayout(self.profile_page)
+        self.ps_name_edit = QLineEdit(self.profile_page)
+        self.ps_target_edit = QLineEdit(self.profile_page)
+        self.ps_target_edit.setPlaceholderText("HH:MM (optional)")
+        self.ps_company_edit = QLineEdit(self.profile_page)
+        self.ps_contact_edit = QLineEdit(self.profile_page)
+        self.ps_email_edit = QLineEdit(self.profile_page)
+        self.ps_phone_edit = QLineEdit(self.profile_page)
+        form.addRow("Name", self.ps_name_edit)
+        form.addRow("Daily Target (HH:MM)", self.ps_target_edit)
+        form.addRow("Company", self.ps_company_edit)
+        form.addRow("Contact Person", self.ps_contact_edit)
+        form.addRow("Email", self.ps_email_edit)
+        form.addRow("Phone", self.ps_phone_edit)
+        buttons_row = QHBoxLayout()
+        self.ps_save_btn = QPushButton("Save", self.profile_page)
+        self.ps_cancel_btn = QPushButton("Cancel", self.profile_page)
+        buttons_row.addWidget(self.ps_save_btn)
+        buttons_row.addWidget(self.ps_cancel_btn)
+        form.addRow(buttons_row)
+
+        # Todos section
+        form.addRow(QLabel("To-Dos"))
+        todos_row = QVBoxLayout()
+        self.ps_todo_list = QListWidget(self.profile_page)
+        add_row = QHBoxLayout()
+        self.ps_todo_input = QLineEdit(self.profile_page)
+        self.ps_todo_input.setPlaceholderText("New to-do…")
+        self.ps_todo_add = QPushButton("Add", self.profile_page)
+        self.ps_todo_del = QPushButton("Delete Selected", self.profile_page)
+        add_row.addWidget(self.ps_todo_input, 1)
+        add_row.addWidget(self.ps_todo_add)
+        todos_row.addWidget(self.ps_todo_list)
+        todos_row.addLayout(add_row)
+        todos_row.addWidget(self.ps_todo_del)
+        form.addRow(todos_row)
+        self.stack.addWidget(self.profile_page)
+        self.stack.setCurrentIndex(0)
 
         layout.addLayout(side, 1)
-        layout.addLayout(main, 3)
+        layout.addWidget(self.stack, 3)
 
         # Menu actions minimal
         export_csv_act = QAction("Export CSV", self)
@@ -179,7 +237,12 @@ class MainWindow(QMainWindow):
     def _connect(self) -> None:
         self.toggle_btn.clicked.connect(self._on_toggle)
         self.add_profile_btn.clicked.connect(self._on_add_profile)
-        self.edit_profile_btn.clicked.connect(self._on_edit_profile_target)
+        self.edit_profile_btn.clicked.connect(self._on_open_profile_settings)
+        self.ps_save_btn.clicked.connect(self._ps_save)
+        self.ps_cancel_btn.clicked.connect(self._ps_cancel)
+        self.ps_todo_add.clicked.connect(self._ps_add_todo)
+        self.ps_todo_del.clicked.connect(self._ps_delete_selected_todos)
+        self.ps_todo_list.itemChanged.connect(self._ps_todo_toggled)
         self.profiles_list.itemSelectionChanged.connect(self._on_profile_selected)
         self.timer.active_entry_changed.connect(lambda _: self._sync_toggle())
         self.table.itemDoubleClicked.connect(self._on_edit_entry_note)
@@ -212,26 +275,131 @@ class MainWindow(QMainWindow):
         if not name:
             return
         target = dlg.get_target_seconds()
-        pid = self.repo.create_profile(name, None, target)
+        company, contact, email, phone = dlg.get_contact_fields()
+        pid = self.repo.create_profile(name, None, target, company, contact, email, phone)
         self._populate_profiles(select_id=pid)
 
     def _on_edit_profile_target(self) -> None:
+        # Backwards-compat: route to the new settings view
+        self._on_open_profile_settings()
+
+    def _on_open_profile_settings(self) -> None:
         pid = self._current_profile_id()
         if pid is None:
             QMessageBox.information(self, "Select profile", "Please select a profile first.")
             return
         prof = self.repo.get_profile(pid)
-        current_target = int(prof["target_seconds"]) if prof and prof["target_seconds"] is not None else None
-        dlg = ProfileDialog(self, title="Edit Profile Target", name=prof["name"] if prof else "", target_seconds=current_target)
-        if dlg.exec() != QDialog.DialogCode.Accepted:
+        # Populate fields
+        self.ps_name_edit.setText(prof["name"] if prof else "")
+        target_seconds = int(prof["target_seconds"]) if prof and prof["target_seconds"] is not None else None
+        if target_seconds and target_seconds > 0:
+            h = target_seconds // 3600
+            m = (target_seconds % 3600) // 60
+            self.ps_target_edit.setText(f"{h:02d}:{m:02d}")
+        else:
+            self.ps_target_edit.clear()
+        self.ps_company_edit.setText(prof["company"] or "" if prof else "")
+        self.ps_contact_edit.setText(prof["contact_person"] or "" if prof else "")
+        self.ps_email_edit.setText(prof["email"] or "" if prof else "")
+        self.ps_phone_edit.setText(prof["phone"] or "" if prof else "")
+        self._ps_load_todos(pid)
+        self.stack.setCurrentIndex(1)
+
+    @staticmethod
+    def _parse_target_hhmm(text: str) -> int | None:
+        text = text.strip()
+        if not text:
+            return None
+        try:
+            if ":" in text:
+                hh, mm = text.split(":", 1)
+                hours = int(hh)
+                minutes = int(mm)
+            else:
+                hours = int(text)
+                minutes = 0
+            if hours < 0 or minutes < 0 or minutes >= 60:
+                return None
+            return hours * 3600 + minutes * 60
+        except Exception:
+            return None
+
+    def _ps_save(self) -> None:
+        pid = self._current_profile_id()
+        if pid is None:
+            self.stack.setCurrentIndex(0)
             return
-        # Name may be edited in dialog; update if changed
-        new_name = dlg.get_name()
+        prof = self.repo.get_profile(pid)
+        # Update name
+        new_name = self.ps_name_edit.text().strip()
         if prof and new_name and new_name != prof["name"]:
             self.repo.rename_profile(pid, new_name)
-        target_seconds = dlg.get_target_seconds()
+        # Update target
+        target_seconds = self._parse_target_hhmm(self.ps_target_edit.text())
         self.repo.set_profile_target_seconds(pid, target_seconds if target_seconds is not None else None)
+        # Update contacts
+        company = self.ps_company_edit.text().strip() or None
+        contact = self.ps_contact_edit.text().strip() or None
+        email = self.ps_email_edit.text().strip() or None
+        phone = self.ps_phone_edit.text().strip() or None
+        self.repo.update_profile_contacts(pid, company, contact, email, phone)
+        # Go back and refresh
         self._populate_profiles(select_id=pid)
+        self._update_progress()
+        self.stack.setCurrentIndex(0)
+
+    def _ps_cancel(self) -> None:
+        self.stack.setCurrentIndex(0)
+
+    def _ps_load_todos(self, profile_id: int) -> None:
+        self.ps_todo_list.blockSignals(True)
+        self.ps_todo_list.clear()
+        for row in self.repo.list_profile_todos(profile_id):
+            item = QListWidgetItem(row["text"])  # type: ignore[index]
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable | Qt.ItemIsEditable)
+            item.setCheckState(Qt.Checked if int(row["completed"]) else Qt.Unchecked)
+            # Store todo id in UserRole
+            item.setData(Qt.UserRole, int(row["id"]))
+            # Strike-through if completed
+            if int(row["completed"]):
+                font = item.font()
+                font.setStrikeOut(True)
+                item.setFont(font)
+            self.ps_todo_list.addItem(item)
+        self.ps_todo_list.blockSignals(False)
+
+    def _ps_add_todo(self) -> None:
+        pid = self._current_profile_id()
+        if pid is None:
+            return
+        text = self.ps_todo_input.text().strip()
+        if not text:
+            return
+        self.repo.add_profile_todo(pid, text)
+        self.ps_todo_input.clear()
+        self._ps_load_todos(pid)
+
+    def _ps_delete_selected_todos(self) -> None:
+        items = self.ps_todo_list.selectedItems()
+        if not items:
+            return
+        for it in items:
+            todo_id = int(it.data(Qt.UserRole))
+            self.repo.delete_profile_todo(todo_id)
+        pid = self._current_profile_id()
+        if pid is not None:
+            self._ps_load_todos(pid)
+
+    def _ps_todo_toggled(self, item: QListWidgetItem) -> None:
+        # Persist completed state and strike-through
+        todo_id = item.data(Qt.UserRole)
+        if todo_id is None:
+            return
+        completed = item.checkState() == Qt.Checked
+        self.repo.set_profile_todo_completed(int(todo_id), completed)
+        font = item.font()
+        font.setStrikeOut(completed)
+        item.setFont(font)
 
     def _on_profile_selected(self) -> None:
         self._sync_toggle()

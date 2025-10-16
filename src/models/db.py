@@ -46,5 +46,19 @@ def _init_db(conn: sqlite3.Connection) -> None:
             # Migrate to v2: add target_seconds to profiles
             conn.execute("ALTER TABLE profiles ADD COLUMN target_seconds INTEGER;")
             conn.execute("PRAGMA user_version = 2;")
+        elif version == 2:
+            # Migrate to v3: add contact fields
+            conn.execute("ALTER TABLE profiles ADD COLUMN company TEXT;")
+            conn.execute("ALTER TABLE profiles ADD COLUMN contact_person TEXT;")
+            conn.execute("ALTER TABLE profiles ADD COLUMN email TEXT;")
+            conn.execute("ALTER TABLE profiles ADD COLUMN phone TEXT;")
+            conn.execute("PRAGMA user_version = 3;")
+        elif version == 3:
+            # Migrate to v4: create profile_todos
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS profile_todos (id INTEGER PRIMARY KEY, profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, text TEXT NOT NULL, completed INTEGER NOT NULL DEFAULT 0, created_ts INTEGER NOT NULL DEFAULT (strftime('%s','now')));"
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_todos_profile ON profile_todos(profile_id);")
+            conn.execute("PRAGMA user_version = 4;")
 
 
