@@ -1,0 +1,6 @@
+PySide6>=6.6,<7
+appdirs>=1.4.4
+python-dateutil>=2.9
+typing-extensions>=4.9
+pyinstaller>=6.6
+
