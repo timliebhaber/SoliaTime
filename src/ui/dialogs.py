@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QDialogButtonBox, QLabel
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QDialogButtonBox, QLabel, QHBoxLayout
 
 
 class ProfileDialog(QDialog):
-    def __init__(self, parent=None, title: str = "Profile", name: str = "") -> None:
+    def __init__(self, parent=None, title: str = "Profile", name: str = "", target_seconds: int | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(title)
         layout = QVBoxLayout(self)
@@ -12,6 +12,15 @@ class ProfileDialog(QDialog):
         self.name_edit.setText(name)
         layout.addWidget(QLabel("Name"))
         layout.addWidget(self.name_edit)
+        # Target time (HH:MM)
+        self.target_edit = QLineEdit(self)
+        self.target_edit.setPlaceholderText("HH:MM (optional)")
+        if target_seconds is not None and target_seconds > 0:
+            h = target_seconds // 3600
+            m = (target_seconds % 3600) // 60
+            self.target_edit.setText(f"{h:02d}:{m:02d}")
+        layout.addWidget(QLabel("Daily Target (HH:MM)"))
+        layout.addWidget(self.target_edit)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
@@ -19,6 +28,24 @@ class ProfileDialog(QDialog):
 
     def get_name(self) -> str:
         return self.name_edit.text().strip()
+
+    def get_target_seconds(self) -> int | None:
+        text = self.target_edit.text().strip()
+        if not text:
+            return None
+        try:
+            if ":" in text:
+                hh, mm = text.split(":", 1)
+                hours = int(hh)
+                minutes = int(mm)
+            else:
+                hours = int(text)
+                minutes = 0
+            if hours < 0 or minutes < 0 or minutes >= 60:
+                return None
+            return hours * 3600 + minutes * 60
+        except Exception:
+            return None
 
 
 class EntryDialog(QDialog):

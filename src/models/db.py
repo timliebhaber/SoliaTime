@@ -35,12 +35,16 @@ def _init_db(conn: sqlite3.Connection) -> None:
             else:
                 schema_text = (
                     "PRAGMA foreign_keys=ON;\n"
-                    "CREATE TABLE IF NOT EXISTS profiles (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, color TEXT, archived INTEGER NOT NULL DEFAULT 0);\n"
+                    "CREATE TABLE IF NOT EXISTS profiles (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, color TEXT, archived INTEGER NOT NULL DEFAULT 0, target_seconds INTEGER);\n"
                     "CREATE TABLE IF NOT EXISTS time_entries (id INTEGER PRIMARY KEY, profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, start_ts INTEGER NOT NULL, end_ts INTEGER, note TEXT, tags TEXT);\n"
                     "CREATE INDEX IF NOT EXISTS idx_entries_profile_start ON time_entries(profile_id, start_ts);\n"
                     "CREATE INDEX IF NOT EXISTS idx_entries_end ON time_entries(end_ts);\n"
                 )
             conn.executescript(schema_text)
-            conn.execute("PRAGMA user_version = 1;")
+            conn.execute("PRAGMA user_version = 2;")
+        elif version == 1:
+            # Migrate to v2: add target_seconds to profiles
+            conn.execute("ALTER TABLE profiles ADD COLUMN target_seconds INTEGER;")
+            conn.execute("PRAGMA user_version = 2;")
 
 

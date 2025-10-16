@@ -10,10 +10,10 @@ class Repository:
         self.conn = conn
 
     # Profiles
-    def create_profile(self, name: str, color: str | None = None) -> int:
+    def create_profile(self, name: str, color: str | None = None, target_seconds: int | None = None) -> int:
         with self.conn:
             cur = self.conn.execute(
-                "INSERT INTO profiles(name, color) VALUES(?, ?)", (name, color)
+                "INSERT INTO profiles(name, color, target_seconds) VALUES(?, ?, ?)", (name, color, target_seconds)
             )
             return cur.lastrowid
 
@@ -30,6 +30,13 @@ class Repository:
                 "UPDATE profiles SET name = ? WHERE id = ?", (new_name, profile_id)
             )
 
+    def set_profile_target_seconds(self, profile_id: int, target_seconds: int | None) -> None:
+        with self.conn:
+            self.conn.execute(
+                "UPDATE profiles SET target_seconds = ? WHERE id = ?",
+                (target_seconds, profile_id),
+            )
+
     def set_profile_archived(self, profile_id: int, archived: bool) -> None:
         with self.conn:
             self.conn.execute(
@@ -41,6 +48,11 @@ class Repository:
         return self.conn.execute(
             "SELECT * FROM profiles WHERE id = ?", (profile_id,)
         ).fetchone()
+
+    def delete_profile(self, profile_id: int) -> None:
+        """Delete a profile. Time entries under it will cascade-delete per schema."""
+        with self.conn:
+            self.conn.execute("DELETE FROM profiles WHERE id = ?", (profile_id,))
 
     # Time entries
     def get_active_entry(self) -> Optional[sqlite3.Row]:
@@ -101,5 +113,20 @@ class Repository:
     def delete_entry(self, entry_id: int) -> None:
         with self.conn:
             self.conn.execute("DELETE FROM time_entries WHERE id = ?", (entry_id,))
+
+
+    def delete_entries(self, entry_ids: Iterable[int]) -> None:
+        """Delete multiple time entries efficiently in a single transaction.
+
+        Skips when the iterable is empty. Uses a parameterized IN clause for
+        efficiency and safety.
+        """
+        ids = list(entry_ids)
+        if not ids:
+            return
+        placeholders = ",".join(["?"] * len(ids))
+        sql = f"DELETE FROM time_entries WHERE id IN ({placeholders})"
+        with self.conn:
+            self.conn.execute(sql, ids)
 
 

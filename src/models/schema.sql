@@ -1,13 +1,14 @@
 PRAGMA foreign_keys = ON;
 
 -- schema version
-PRAGMA user_version = 1;
+PRAGMA user_version = 2;
 
 CREATE TABLE IF NOT EXISTS profiles (
   id INTEGER PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   color TEXT,
-  archived INTEGER NOT NULL DEFAULT 0
+  archived INTEGER NOT NULL DEFAULT 0,
+  target_seconds INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS time_entries (
