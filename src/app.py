@@ -41,6 +41,13 @@ def main() -> int:
 
     window = MainWindow(repository=repo, timer_manager=timer)
     window.show()
+    # Ensure window is foreground and not minimized
+    try:
+        window.showNormal()
+        window.raise_()
+        window.activateWindow()
+    except Exception:
+        pass
 
     return app.exec()
 

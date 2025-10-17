@@ -231,6 +231,16 @@ class MainWindow(QMainWindow):
             self.restoreGeometry(QByteArray(self.settings.geometry))
         if self.settings.window_state:
             self.restoreState(QByteArray(self.settings.window_state))
+        # If no saved geometry, start a bit larger than default
+        if not self.settings.geometry:
+            try:
+                self.resize(1200, 750)
+            except Exception:
+                pass
+        # Ensure the window is on a visible screen and focused
+        self._ensure_visible_on_screen()
+        self.raise_()
+        self.activateWindow()
         # System tray
         self._setup_tray()
 
@@ -634,6 +644,29 @@ class MainWindow(QMainWindow):
             app.setPalette(palette)
         else:
             app.setPalette(app.style().standardPalette())
+
+    def _ensure_visible_on_screen(self) -> None:
+        """If restored off-screen (e.g., after monitor change), center on primary screen."""
+        from PySide6.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app is None:
+            return
+        frame = self.frameGeometry()
+        if frame.isEmpty():
+            return
+        # Check if any screen contains the window center
+        center = frame.center()
+        screens = app.screens() or []
+        for scr in screens:
+            if scr.geometry().contains(center):
+                return
+        # Not on any screen → move to primary screen center
+        primary = app.primaryScreen()
+        if primary is None:
+            return
+        g = primary.availableGeometry()
+        self.move(max(g.left(), g.center().x() - self.width() // 2),
+                  max(g.top(), g.center().y() - self.height() // 2))
 
     def _setup_tray(self) -> None:
         from PySide6.QtWidgets import QSystemTrayIcon, QMenu
