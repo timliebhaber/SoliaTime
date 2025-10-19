@@ -104,5 +104,39 @@ def _init_db(conn: sqlite3.Connection) -> None:
             )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_profile_service_todos_service ON profile_service_todos(profile_service_id);")
             conn.execute("PRAGMA user_version = 8;")
+        elif version == 8:
+            # Migrate to v9: create projects and project_todos tables
+            conn.execute(
+                """CREATE TABLE IF NOT EXISTS projects (
+                    id INTEGER PRIMARY KEY,
+                    profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+                    name TEXT NOT NULL,
+                    estimated_seconds INTEGER,
+                    service_id INTEGER REFERENCES services(id) ON DELETE SET NULL,
+                    deadline_ts INTEGER,
+                    notes TEXT,
+                    created_ts INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+                );"""
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_projects_profile ON projects(profile_id);")
+            conn.execute(
+                """CREATE TABLE IF NOT EXISTS project_todos (
+                    id INTEGER PRIMARY KEY,
+                    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                    text TEXT NOT NULL,
+                    completed INTEGER NOT NULL DEFAULT 0,
+                    created_ts INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+                );"""
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_project_todos_project ON project_todos(project_id);")
+            conn.execute("PRAGMA user_version = 9;")
+        elif version == 9:
+            # Migrate to v10: add project_id to time_entries
+            try:
+                conn.execute("ALTER TABLE time_entries ADD COLUMN project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL;")
+            except Exception:
+                # Column may already exist
+                pass
+            conn.execute("PRAGMA user_version = 10;")
 
 

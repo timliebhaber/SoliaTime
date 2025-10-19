@@ -1,6 +1,7 @@
 """View components for the application."""
 from .dashboard_view import DashboardView
 from .profiles_view import ProfilesView
+from .projects_view import ProjectsView
 from .services_view import ServicesView
 from .timer_view import TimerView
 
@@ -10,6 +11,7 @@ from .timer_view import TimerView
 __all__ = [
     "DashboardView",
     "ProfilesView",
+    "ProjectsView",
     "ServicesView",
     "TimerView",
 ]

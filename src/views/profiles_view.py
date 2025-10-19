@@ -6,10 +6,8 @@ from typing import TYPE_CHECKING, Optional
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
-    QComboBox,
     QDialog,
     QFormLayout,
-    QGroupBox,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -21,7 +19,6 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
-    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -47,6 +44,7 @@ class ProfilesView(QWidget):
         """
         super().__init__(parent)
         self.viewmodel = viewmodel
+        self._first_show = True
         self._build_ui()
         self._connect_signals()
 
@@ -104,7 +102,6 @@ class ProfilesView(QWidget):
         
         # Profile fields (removed daily target)
         self.name_edit = QLineEdit()
-        self.company_edit = QLineEdit()
         self.contact_edit = QLineEdit()
         self.email_edit = QLineEdit()
         self.phone_edit = QLineEdit()
@@ -114,7 +111,6 @@ class ProfilesView(QWidget):
         self.notes_edit.setMaximumHeight(100)
         
         form.addRow("Name", self.name_edit)
-        form.addRow("Company", self.company_edit)
         form.addRow("Contact Person", self.contact_edit)
         form.addRow("Email", self.email_edit)
         form.addRow("Phone", self.phone_edit)
@@ -123,6 +119,12 @@ class ProfilesView(QWidget):
         # Save button
         self.save_btn = QPushButton("Save")
         form.addRow(self.save_btn)
+        
+        # Projects section
+        form.addRow(QLabel("<h3>Projects</h3>"))
+        self.projects_list = QListWidget()
+        self.projects_list.setMaximumHeight(150)
+        form.addRow(self.projects_list)
         
         # Todos section
         form.addRow(QLabel("<h3>To-Dos</h3>"))
@@ -150,24 +152,6 @@ class ProfilesView(QWidget):
         
         form.addRow(todos_layout)
         
-        # Services section
-        form.addRow(QLabel("<h3>Services</h3>"))
-        services_layout = QVBoxLayout()
-        
-        # Service selector and add button
-        add_service_row = QHBoxLayout()
-        self.service_combo = QComboBox()
-        self.add_service_btn = QPushButton("Add Service")
-        add_service_row.addWidget(self.service_combo, 1)
-        add_service_row.addWidget(self.add_service_btn)
-        services_layout.addLayout(add_service_row)
-        
-        # Container for service instances
-        self.services_container = QVBoxLayout()
-        services_layout.addLayout(self.services_container)
-        
-        form.addRow(services_layout)
-        
         scroll.setWidget(widget)
         return scroll
 
@@ -181,22 +165,33 @@ class ProfilesView(QWidget):
         
         # Details panel UI → ViewModel
         self.save_btn.clicked.connect(self._on_save_profile)
+        self.projects_list.itemDoubleClicked.connect(self._on_project_double_clicked)
         self.todo_add_btn.clicked.connect(self._on_add_todo)
         self.todo_del_btn.clicked.connect(self._on_delete_todos)
-        self.add_service_btn.clicked.connect(self._on_add_service)
         
         # ViewModel → UI
         self.viewmodel.profiles_changed.connect(self._update_profiles_list)
         self.viewmodel.todos_changed.connect(self._update_todos_list)
+        self.viewmodel.projects_changed.connect(self._update_projects_list)
         self.viewmodel.profile_selected.connect(self._load_profile_details)
-        self.viewmodel.profile_services_changed.connect(self._update_services_list)
-        self.viewmodel.service_todos_changed.connect(self._update_service_todos)
         
         # Initial load - populate with existing profiles from viewmodel
         self._update_profiles_list(self.viewmodel.profiles)
+    
+    def showEvent(self, event) -> None:  # type: ignore[override]
+        """Handle show event to clear selection on first display.
         
-        # Load available services
-        self._populate_service_combo()
+        Args:
+            event: Show event
+        """
+        super().showEvent(event)
+        if self._first_show:
+            self._first_show = False
+            # Clear any profile selection when first showing the view
+            self.profiles_list.blockSignals(True)
+            self.profiles_list.clearSelection()
+            self.profiles_list.blockSignals(False)
+            self.viewmodel.select_profile(None)
     
     # Private helper methods
     
@@ -209,11 +204,11 @@ class ProfilesView(QWidget):
         if profile_id is None:
             # Clear all fields
             self.name_edit.clear()
-            self.company_edit.clear()
             self.contact_edit.clear()
             self.email_edit.clear()
             self.phone_edit.clear()
             self.notes_edit.clear()
+            self.projects_list.clear()
             return
         
         prof = self.viewmodel.repo.get_profile(profile_id)
@@ -222,28 +217,14 @@ class ProfilesView(QWidget):
         
         # Populate fields
         self.name_edit.setText(prof["name"] if prof else "")
-        self.company_edit.setText(prof["company"] or "" if prof else "")
         self.contact_edit.setText(prof["contact_person"] or "" if prof else "")
         self.email_edit.setText(prof["email"] or "" if prof else "")
         self.phone_edit.setText(prof["phone"] or "" if prof else "")
         self.notes_edit.setPlainText((prof["notes"] or "") if prof else "")
         
-        # Load todos
+        # Load projects and todos
+        self.viewmodel.load_projects(profile_id)
         self.viewmodel.load_todos(profile_id)
-    
-    def _populate_service_combo(self) -> None:
-        """Populate the service combo box with available services."""
-        self.service_combo.clear()
-        services = self.viewmodel.repo.list_services()
-        for service in services:
-            self.service_combo.addItem(str(service["name"]), int(service["id"]))
-    
-    def _clear_services_container(self) -> None:
-        """Clear all widgets from services container."""
-        while self.services_container.count():
-            item = self.services_container.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
     
     # UI event handlers - List panel
     
@@ -258,8 +239,8 @@ class ProfilesView(QWidget):
             return
         
         # No longer using target in profile dialog
-        company, contact, email, phone = dlg.get_contact_fields()
-        self.viewmodel.create_profile(name, None, company, contact, email, phone)
+        contact, email, phone = dlg.get_contact_fields()
+        self.viewmodel.create_profile(name, None, contact, email, phone)
     
     def _on_delete_profile(self) -> None:
         """Handle delete profile button."""
@@ -267,7 +248,16 @@ class ProfilesView(QWidget):
         if profile_id is None:
             return
         
-        # Try to delete
+        # First confirm user wants to delete
+        reply = QMessageBox.question(
+            self,
+            "Delete profile",
+            "Delete this profile and all its time entries?",
+        )
+        if reply != QMessageBox.Yes:
+            return
+        
+        # Check if timer is running
         if not self.viewmodel.delete_profile(profile_id, force=False):
             # Timer is running, confirm with user
             reply = QMessageBox.question(
@@ -277,16 +267,6 @@ class ProfilesView(QWidget):
             )
             if reply == QMessageBox.Yes:
                 self.viewmodel.delete_profile(profile_id, force=True)
-            return
-        
-        # Confirm cascade
-        reply = QMessageBox.question(
-            self,
-            "Delete profile",
-            "Delete this profile and all its time entries?",
-        )
-        if reply == QMessageBox.Yes:
-            self.viewmodel.delete_profile(profile_id, force=True)
     
     def _on_duplicate_profile(self) -> None:
         """Handle duplicate profile button."""
@@ -342,15 +322,24 @@ class ProfilesView(QWidget):
             return
         
         name = self.name_edit.text().strip()
-        company = self.company_edit.text().strip() or None
         contact = self.contact_edit.text().strip() or None
         email = self.email_edit.text().strip() or None
         phone = self.phone_edit.text().strip() or None
         notes = self.notes_edit.toPlainText().strip() or None
         
         self.viewmodel.update_profile(
-            profile_id, name, None, company, contact, email, phone, notes
+            profile_id, name, None, contact, email, phone, notes
         )
+    
+    def _on_project_double_clicked(self, item: QListWidgetItem) -> None:
+        """Handle project double-click to navigate to projects view.
+        
+        Args:
+            item: The clicked list item
+        """
+        project_id = item.data(Qt.UserRole)
+        if project_id is not None:
+            self.viewmodel.navigate_to_project(int(project_id))
     
     def _on_add_todo(self) -> None:
         """Handle add todo button."""
@@ -392,22 +381,6 @@ class ProfilesView(QWidget):
         completed = item.checkState() == Qt.Checked
         self.viewmodel.toggle_todo_completed(int(todo_id), completed, profile_id)
     
-    def _on_add_service(self) -> None:
-        """Handle add service button."""
-        profile_id = self.viewmodel.current_profile_id
-        if profile_id is None:
-            return
-        
-        if self.service_combo.count() == 0:
-            QMessageBox.information(self, "No Services", "Please create services first in the Services view.")
-            return
-        
-        service_id = self.service_combo.currentData()
-        if service_id is None:
-            return
-        
-        self.viewmodel.add_service_to_profile(profile_id, int(service_id))
-    
     # ViewModel update handlers
     
     def _update_profiles_list(self, profiles: list) -> None:
@@ -421,10 +394,19 @@ class ProfilesView(QWidget):
             it = QListWidgetItem(str(prof["name"]))
             it.setData(Qt.UserRole, int(prof["id"]))
             self.profiles_list.addItem(it)
+    
+    def _update_projects_list(self, projects: list) -> None:
+        """Update projects list with new data.
         
-        # Auto-select first if nothing selected
-        if self.profiles_list.currentRow() == -1 and self.profiles_list.count() > 0:
-            self.profiles_list.setCurrentRow(0)
+        Args:
+            projects: List of project dicts
+        """
+        self.projects_list.clear()
+        
+        for proj in projects:
+            item = QListWidgetItem(str(proj["name"]))
+            item.setData(Qt.UserRole, int(proj["id"]))
+            self.projects_list.addItem(item)
     
     def _update_todos_list(self, todos: list) -> None:
         """Update todos list with new data.
@@ -450,175 +432,6 @@ class ProfilesView(QWidget):
             self.todo_list.addItem(item)
         
         self.todo_list.blockSignals(False)
-    
-    def _update_services_list(self, services: list) -> None:
-        """Update services list with new data.
-        
-        Args:
-            services: List of profile service instance dicts
-        """
-        self._clear_services_container()
-        
-        for ps in services:
-            service_widget = self._create_service_widget(ps)
-            self.services_container.addWidget(service_widget)
-    
-    def _create_service_widget(self, profile_service: dict) -> QWidget:
-        """Create a widget for a profile service instance.
-        
-        Args:
-            profile_service: Profile service instance dict
-            
-        Returns:
-            Widget displaying service instance
-        """
-        ps_id = int(profile_service["id"])
-        service_name = str(profile_service["service_name"])
-        notes = profile_service.get("notes") or ""
-        
-        group = QGroupBox(service_name)
-        layout = QVBoxLayout(group)
-        
-        # Notes section
-        notes_label = QLabel("Notes:")
-        notes_edit = QTextEdit()
-        notes_edit.setPlainText(notes)
-        notes_edit.setMaximumHeight(80)
-        notes_edit.setObjectName(f"service_notes_{ps_id}")
-        
-        # Save notes on focus out
-        original_focus_out = notes_edit.focusOutEvent
-        def focus_out_handler(event):
-            self._save_service_notes(ps_id, notes_edit)
-            original_focus_out(event)
-        notes_edit.focusOutEvent = focus_out_handler
-        
-        layout.addWidget(notes_label)
-        layout.addWidget(notes_edit)
-        
-        # Todos section
-        todos_label = QLabel("To-Dos:")
-        layout.addWidget(todos_label)
-        
-        # Todos list
-        todos_list = QListWidget()
-        todos_list.setMaximumHeight(100)
-        todos_list.setObjectName(f"service_todos_{ps_id}")
-        todos_list.itemChanged.connect(
-            lambda item, ps_id=ps_id: self._on_service_todo_toggled(ps_id, item)
-        )
-        layout.addWidget(todos_list)
-        
-        # Add todo
-        add_todo_row = QHBoxLayout()
-        todo_input = QLineEdit()
-        todo_input.setPlaceholderText("New to-do…")
-        todo_add_btn = QPushButton("Add")
-        todo_add_btn.clicked.connect(
-            lambda ps_id=ps_id, todo_input=todo_input: self._on_add_service_todo(ps_id, todo_input)
-        )
-        add_todo_row.addWidget(todo_input, 1)
-        add_todo_row.addWidget(todo_add_btn)
-        layout.addLayout(add_todo_row)
-        
-        # Delete todo and delete service buttons
-        button_row = QHBoxLayout()
-        todo_del_btn = QPushButton("Delete Todo")
-        todo_del_btn.clicked.connect(
-            lambda ps_id=ps_id, todos_list=todos_list: self._on_delete_service_todo(ps_id, todos_list)
-        )
-        delete_service_btn = QPushButton("Remove Service")
-        delete_service_btn.clicked.connect(lambda ps_id=ps_id: self._on_remove_service(ps_id))
-        button_row.addWidget(todo_del_btn)
-        button_row.addWidget(delete_service_btn)
-        layout.addLayout(button_row)
-        
-        # Load todos for this service
-        self.viewmodel.load_service_todos(ps_id)
-        
-        return group
-    
-    def _update_service_todos(self, profile_service_id: int, todos: list) -> None:
-        """Update todos for a specific service instance.
-        
-        Args:
-            profile_service_id: Profile service instance ID
-            todos: List of todo dicts
-        """
-        # Find the todos list widget for this service
-        todos_list = self.findChild(QListWidget, f"service_todos_{profile_service_id}")
-        if not todos_list:
-            return
-        
-        todos_list.blockSignals(True)
-        todos_list.clear()
-        
-        for todo in todos:
-            item = QListWidgetItem(str(todo["text"]))
-            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-            item.setCheckState(Qt.Checked if int(todo["completed"]) else Qt.Unchecked)
-            item.setData(Qt.UserRole, int(todo["id"]))
-            
-            # Strike-through if completed
-            if int(todo["completed"]):
-                font = item.font()
-                font.setStrikeOut(True)
-                item.setFont(font)
-            
-            todos_list.addItem(item)
-        
-        todos_list.blockSignals(False)
-    
-    def _save_service_notes(self, profile_service_id: int, notes_edit: QTextEdit) -> None:
-        """Save service notes to database."""
-        profile_id = self.viewmodel.current_profile_id
-        if profile_id is None:
-            return
-        
-        notes = notes_edit.toPlainText().strip() or None
-        self.viewmodel.update_profile_service_notes(profile_service_id, notes, profile_id)
-    
-    def _on_add_service_todo(self, profile_service_id: int, todo_input: QLineEdit) -> None:
-        """Handle add todo for service."""
-        text = todo_input.text().strip()
-        if not text:
-            return
-        
-        self.viewmodel.add_service_todo(profile_service_id, text)
-        todo_input.clear()
-    
-    def _on_delete_service_todo(self, profile_service_id: int, todos_list: QListWidget) -> None:
-        """Handle delete todo for service."""
-        items = todos_list.selectedItems()
-        if not items:
-            return
-        
-        for item in items:
-            todo_id = int(item.data(Qt.UserRole))
-            self.viewmodel.delete_service_todo(todo_id, profile_service_id)
-    
-    def _on_service_todo_toggled(self, profile_service_id: int, item: QListWidgetItem) -> None:
-        """Handle service todo checkbox toggle."""
-        todo_id = item.data(Qt.UserRole)
-        if todo_id is None:
-            return
-        
-        completed = item.checkState() == Qt.Checked
-        self.viewmodel.toggle_service_todo_completed(int(todo_id), completed, profile_service_id)
-    
-    def _on_remove_service(self, profile_service_id: int) -> None:
-        """Handle remove service button."""
-        profile_id = self.viewmodel.current_profile_id
-        if profile_id is None:
-            return
-        
-        reply = QMessageBox.question(
-            self, "Remove Service", "Remove this service from the profile?"
-        )
-        if reply != QMessageBox.Yes:
-            return
-        
-        self.viewmodel.delete_profile_service(profile_service_id, profile_id)
     
     # Helper methods
     

@@ -66,10 +66,15 @@ class DashboardView(QWidget):
         self.profiles_tile.set_click_callback(self.viewmodel.request_navigate_to_profiles)
         tiles_layout.addWidget(self.profiles_tile, 0, 1)
         
+        # Projects tile
+        self.projects_tile = TileButton("Projects", "📋")
+        self.projects_tile.set_click_callback(self.viewmodel.request_navigate_to_projects)
+        tiles_layout.addWidget(self.projects_tile, 1, 0)
+        
         # Services tile
         self.services_tile = TileButton("Services", "💼")
         self.services_tile.set_click_callback(self.viewmodel.request_navigate_to_services)
-        tiles_layout.addWidget(self.services_tile, 0, 2)
+        tiles_layout.addWidget(self.services_tile, 1, 1)
         
         layout.addWidget(tiles_container)
         layout.addStretch()

@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
 
 from src.services.export_service import export_csv, export_json
 from src.services.settings_service import AppSettings
-from src.views import DashboardView, ProfilesView, ServicesView, TimerView
+from src.views import DashboardView, ProfilesView, ProjectsView, ServicesView, TimerView
 
 if TYPE_CHECKING:
     from src.services.state_service import StateService
@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from src.viewmodels import (
         DashboardViewModel,
         ProfilesViewModel,
+        ProjectsViewModel,
         ServicesViewModel,
         TimerViewModel,
     )
@@ -57,6 +58,7 @@ class MainWindow(QMainWindow):
         dashboard_vm: "DashboardViewModel",
         timer_vm: "TimerViewModel",
         profiles_vm: "ProfilesViewModel",
+        projects_vm: "ProjectsViewModel",
         services_vm: "ServicesViewModel",
     ) -> None:
         """Initialize main window.
@@ -67,6 +69,7 @@ class MainWindow(QMainWindow):
             dashboard_vm: Dashboard ViewModel
             timer_vm: Timer ViewModel
             profiles_vm: Profiles ViewModel
+            projects_vm: Projects ViewModel
             services_vm: Services ViewModel
         """
         super().__init__()
@@ -77,6 +80,7 @@ class MainWindow(QMainWindow):
         self.dashboard_vm = dashboard_vm
         self.timer_vm = timer_vm
         self.profiles_vm = profiles_vm
+        self.projects_vm = projects_vm
         self.services_vm = services_vm
         
         # Setup window
@@ -126,14 +130,35 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
         main_layout = QVBoxLayout(central)
         
-        # Dashboard button at top
-        dashboard_btn_container = QHBoxLayout()
+        # Navigation buttons at top
+        nav_btn_container = QHBoxLayout()
         self.dashboard_btn = QPushButton("🏠 Dashboard")
         self.dashboard_btn.setMaximumWidth(150)
         self.dashboard_btn.clicked.connect(self._go_to_dashboard)
-        dashboard_btn_container.addWidget(self.dashboard_btn)
-        dashboard_btn_container.addStretch()
-        main_layout.addLayout(dashboard_btn_container)
+        nav_btn_container.addWidget(self.dashboard_btn)
+        
+        self.timer_btn = QPushButton("⏱️ Timer")
+        self.timer_btn.setMaximumWidth(150)
+        self.timer_btn.clicked.connect(lambda: self.stack.setCurrentIndex(1))
+        nav_btn_container.addWidget(self.timer_btn)
+        
+        self.profiles_btn = QPushButton("👥 Profiles")
+        self.profiles_btn.setMaximumWidth(150)
+        self.profiles_btn.clicked.connect(lambda: self.stack.setCurrentIndex(2))
+        nav_btn_container.addWidget(self.profiles_btn)
+        
+        self.services_btn = QPushButton("💼 Services")
+        self.services_btn.setMaximumWidth(150)
+        self.services_btn.clicked.connect(lambda: self.stack.setCurrentIndex(4))
+        nav_btn_container.addWidget(self.services_btn)
+        
+        self.projects_btn = QPushButton("📋 Projects")
+        self.projects_btn.setMaximumWidth(150)
+        self.projects_btn.clicked.connect(lambda: self.stack.setCurrentIndex(3))
+        nav_btn_container.addWidget(self.projects_btn)
+        
+        nav_btn_container.addStretch()
+        main_layout.addLayout(nav_btn_container)
         
         # Content area with sidebar and stack
         content_layout = QHBoxLayout()
@@ -149,12 +174,14 @@ class MainWindow(QMainWindow):
         self.dashboard_view = DashboardView(self.dashboard_vm)
         self.timer_view = TimerView(self.timer_vm)
         self.profiles_view = ProfilesView(self.profiles_vm)
+        self.projects_view = ProjectsView(self.projects_vm)
         self.services_view = ServicesView(self.services_vm)
         
-        # Add to stack (indices: 0=dashboard, 1=timer, 2=profiles, 3=services)
+        # Add to stack (indices: 0=dashboard, 1=timer, 2=profiles, 3=projects, 4=services)
         self.stack.addWidget(self.dashboard_view)
         self.stack.addWidget(self.timer_view)
         self.stack.addWidget(self.profiles_view)
+        self.stack.addWidget(self.projects_view)
         self.stack.addWidget(self.services_view)
         
         content_layout.addWidget(self.profiles_sidebar, 1)
@@ -190,7 +217,11 @@ class MainWindow(QMainWindow):
         # Dashboard navigation
         self.dashboard_vm.navigate_to_timer.connect(lambda: self.stack.setCurrentIndex(1))
         self.dashboard_vm.navigate_to_profiles.connect(lambda: self.stack.setCurrentIndex(2))
-        self.dashboard_vm.navigate_to_services.connect(lambda: self.stack.setCurrentIndex(3))
+        self.dashboard_vm.navigate_to_projects.connect(lambda: self.stack.setCurrentIndex(3))
+        self.dashboard_vm.navigate_to_services.connect(lambda: self.stack.setCurrentIndex(4))
+        
+        # Profiles to Projects navigation
+        self.profiles_vm.navigate_to_project_requested.connect(self._navigate_to_project)
         
         # Sidebar profiles
         self.add_profile_btn.clicked.connect(self._on_sidebar_add_profile)
@@ -268,6 +299,17 @@ class MainWindow(QMainWindow):
     def _go_to_dashboard(self) -> None:
         """Navigate to dashboard."""
         self.stack.setCurrentIndex(0)
+    
+    def _navigate_to_project(self, project_id: int) -> None:
+        """Navigate to projects view and select specific project.
+        
+        Args:
+            project_id: Project ID to select
+        """
+        # First navigate to projects view
+        self.stack.setCurrentIndex(3)
+        # Then select the project in the view
+        self.projects_vm.select_project(project_id)
 
     def _on_page_changed(self, index: int) -> None:
         """Handle page change to show/hide sidebar.
@@ -312,8 +354,8 @@ class MainWindow(QMainWindow):
         if not name:
             return
         
-        company, contact, email, phone = dlg.get_contact_fields()
-        self.profiles_vm.create_profile(name, None, company, contact, email, phone)
+        contact, email, phone = dlg.get_contact_fields()
+        self.profiles_vm.create_profile(name, None, contact, email, phone)
 
     def _on_sidebar_edit_profile(self) -> None:
         """Handle edit profile from sidebar."""

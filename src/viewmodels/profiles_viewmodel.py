@@ -23,9 +23,9 @@ class ProfilesViewModel(QObject):
     # Signals
     profiles_changed = Signal(list)  # List of profile dicts
     profile_selected = Signal(object)  # Optional[int] - profile_id
+    projects_changed = Signal(list)  # List of project dicts
     todos_changed = Signal(list)  # List of todo dicts
-    profile_services_changed = Signal(list)  # List of profile service dicts
-    service_todos_changed = Signal(int, list)  # profile_service_id, list of todo dicts
+    navigate_to_project_requested = Signal(int)  # project_id to navigate to
     error_occurred = Signal(str, str)  # title, message
     
     def __init__(self, state_service: "StateService", timer_service: "TimerService") -> None:
@@ -42,9 +42,8 @@ class ProfilesViewModel(QObject):
         
         # Internal state
         self._profiles: List[dict] = []
+        self._projects: List[dict] = []
         self._todos: List[dict] = []
-        self._profile_services: List[dict] = []
-        self._service_todos_cache: dict[int, List[dict]] = {}  # profile_service_id -> todos
         
         # Connect to state changes
         self.state.profiles_updated.connect(self._refresh_profiles)
@@ -71,6 +70,11 @@ class ProfilesViewModel(QObject):
         return self.state.current_profile_id
     
     @property
+    def projects(self) -> List[dict]:
+        """Get projects for current profile."""
+        return self._projects
+    
+    @property
     def todos(self) -> List[dict]:
         """Get todos for current profile."""
         return self._todos
@@ -81,7 +85,6 @@ class ProfilesViewModel(QObject):
         self,
         name: str,
         target_seconds: Optional[int] = None,
-        company: Optional[str] = None,
         contact_person: Optional[str] = None,
         email: Optional[str] = None,
         phone: Optional[str] = None,
@@ -91,7 +94,6 @@ class ProfilesViewModel(QObject):
         Args:
             name: Profile name
             target_seconds: Daily target in seconds
-            company: Company name
             contact_person: Contact person name
             email: Contact email
             phone: Contact phone
@@ -100,7 +102,7 @@ class ProfilesViewModel(QObject):
             ID of created profile
         """
         profile_id = self.repo.create_profile(
-            name, None, target_seconds, company, contact_person, email, phone
+            name, None, target_seconds, None, contact_person, email, phone
         )
         self.state.notify_profiles_updated()
         self.select_profile(profile_id)
@@ -111,7 +113,6 @@ class ProfilesViewModel(QObject):
         profile_id: int,
         name: Optional[str] = None,
         target_seconds: Optional[int] = None,
-        company: Optional[str] = None,
         contact_person: Optional[str] = None,
         email: Optional[str] = None,
         phone: Optional[str] = None,
@@ -123,7 +124,6 @@ class ProfilesViewModel(QObject):
             profile_id: Profile ID
             name: New name (if provided)
             target_seconds: New target (if provided)
-            company: New company (if provided)
             contact_person: New contact person (if provided)
             email: New email (if provided)
             phone: New phone (if provided)
@@ -142,10 +142,10 @@ class ProfilesViewModel(QObject):
             self.repo.set_profile_target_seconds(profile_id, target_seconds)
         
         # Update contacts
-        if any(x is not None for x in [company, contact_person, email, phone]):
+        if any(x is not None for x in [contact_person, email, phone]):
             self.repo.update_profile_contacts(
                 profile_id,
-                company if company is not None else prof.get("company"),
+                None,  # company is always None now
                 contact_person if contact_person is not None else prof.get("contact_person"),
                 email if email is not None else prof.get("email"),
                 phone if phone is not None else prof.get("phone"),
@@ -199,14 +199,13 @@ class ProfilesViewModel(QObject):
         
         # Create new profile with copied fields
         target_seconds = int(prof["target_seconds"]) if prof["target_seconds"] is not None else None
-        company = prof["company"] or None
         contact = prof["contact_person"] or None
         email = prof["email"] or None
         phone = prof["phone"] or None
         notes = prof["notes"] or None
         
         new_id = self.repo.create_profile(
-            new_name, None, target_seconds, company, contact, email, phone, notes
+            new_name, None, target_seconds, None, contact, email, phone, notes
         )
         
         # Copy todos
@@ -291,6 +290,22 @@ class ProfilesViewModel(QObject):
         """
         self._load_todos(profile_id)
     
+    def load_projects(self, profile_id: int) -> None:
+        """Load projects for a profile.
+        
+        Args:
+            profile_id: Profile ID
+        """
+        self._load_projects(profile_id)
+    
+    def navigate_to_project(self, project_id: int) -> None:
+        """Request navigation to projects view with specific project.
+        
+        Args:
+            project_id: Project ID to navigate to
+        """
+        self.navigate_to_project_requested.emit(project_id)
+    
     # Private methods
     
     def _refresh_profiles(self) -> None:
@@ -303,8 +318,18 @@ class ProfilesViewModel(QObject):
         """Handle profile selection change."""
         self.profile_selected.emit(profile_id)
         if profile_id is not None:
+            self._load_projects(profile_id)
             self._load_todos(profile_id)
-            self._load_profile_services(profile_id)
+    
+    def _load_projects(self, profile_id: int) -> None:
+        """Load projects for a profile.
+        
+        Args:
+            profile_id: Profile ID
+        """
+        rows = self.repo.list_projects(profile_id=profile_id)
+        self._projects = [dict(row) for row in rows]
+        self.projects_changed.emit(self._projects)
     
     def _load_todos(self, profile_id: int) -> None:
         """Load todos for a profile.
@@ -315,112 +340,4 @@ class ProfilesViewModel(QObject):
         rows = self.repo.list_profile_todos(profile_id)
         self._todos = [dict(row) for row in rows]
         self.todos_changed.emit(self._todos)
-    
-    # Public methods - Profile Services
-    
-    def add_service_to_profile(self, profile_id: int, service_id: int, notes: str | None = None) -> int:
-        """Add a service instance to a profile.
-        
-        Args:
-            profile_id: Profile ID
-            service_id: Service ID to add
-            notes: Optional notes for this service instance
-            
-        Returns:
-            ID of created profile service instance
-        """
-        profile_service_id = self.repo.add_profile_service(profile_id, service_id, notes)
-        self._load_profile_services(profile_id)
-        return profile_service_id
-    
-    def update_profile_service_notes(self, profile_service_id: int, notes: str | None, profile_id: int) -> None:
-        """Update notes for a profile service instance.
-        
-        Args:
-            profile_service_id: Profile service instance ID
-            notes: New notes text
-            profile_id: Profile ID (for refresh)
-        """
-        self.repo.update_profile_service_notes(profile_service_id, notes)
-        self._load_profile_services(profile_id)
-    
-    def delete_profile_service(self, profile_service_id: int, profile_id: int) -> None:
-        """Delete a profile service instance.
-        
-        Args:
-            profile_service_id: Profile service instance ID
-            profile_id: Profile ID (for refresh)
-        """
-        self.repo.delete_profile_service(profile_service_id)
-        self._load_profile_services(profile_id)
-    
-    def load_profile_services(self, profile_id: int) -> None:
-        """Load services for a profile.
-        
-        Args:
-            profile_id: Profile ID
-        """
-        self._load_profile_services(profile_id)
-    
-    def _load_profile_services(self, profile_id: int) -> None:
-        """Load profile services from database.
-        
-        Args:
-            profile_id: Profile ID
-        """
-        rows = self.repo.list_profile_services(profile_id)
-        self._profile_services = [dict(row) for row in rows]
-        self.profile_services_changed.emit(self._profile_services)
-    
-    # Public methods - Profile Service Todos
-    
-    def add_service_todo(self, profile_service_id: int, text: str) -> None:
-        """Add a todo to a profile service instance.
-        
-        Args:
-            profile_service_id: Profile service instance ID
-            text: Todo text
-        """
-        self.repo.add_profile_service_todo(profile_service_id, text)
-        self._load_service_todos(profile_service_id)
-    
-    def toggle_service_todo_completed(self, todo_id: int, completed: bool, profile_service_id: int) -> None:
-        """Toggle service todo completion state.
-        
-        Args:
-            todo_id: Todo ID
-            completed: New completion state
-            profile_service_id: Profile service instance ID (for refresh)
-        """
-        self.repo.set_profile_service_todo_completed(todo_id, completed)
-        self._load_service_todos(profile_service_id)
-    
-    def delete_service_todo(self, todo_id: int, profile_service_id: int) -> None:
-        """Delete a service todo.
-        
-        Args:
-            todo_id: Todo ID
-            profile_service_id: Profile service instance ID (for refresh)
-        """
-        self.repo.delete_profile_service_todo(todo_id)
-        self._load_service_todos(profile_service_id)
-    
-    def load_service_todos(self, profile_service_id: int) -> None:
-        """Load todos for a profile service instance.
-        
-        Args:
-            profile_service_id: Profile service instance ID
-        """
-        self._load_service_todos(profile_service_id)
-    
-    def _load_service_todos(self, profile_service_id: int) -> None:
-        """Load service todos from database.
-        
-        Args:
-            profile_service_id: Profile service instance ID
-        """
-        rows = self.repo.list_profile_service_todos(profile_service_id)
-        todos = [dict(row) for row in rows]
-        self._service_todos_cache[profile_service_id] = todos
-        self.service_todos_changed.emit(profile_service_id, todos)
 

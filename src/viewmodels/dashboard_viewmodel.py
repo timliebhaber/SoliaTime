@@ -13,6 +13,7 @@ class DashboardViewModel(QObject):
     # Navigation signals
     navigate_to_timer = Signal()
     navigate_to_profiles = Signal()
+    navigate_to_projects = Signal()
     navigate_to_services = Signal()
     
     def __init__(self) -> None:
@@ -26,6 +27,10 @@ class DashboardViewModel(QObject):
     def request_navigate_to_profiles(self) -> None:
         """Request navigation to profiles view."""
         self.navigate_to_profiles.emit()
+    
+    def request_navigate_to_projects(self) -> None:
+        """Request navigation to projects view."""
+        self.navigate_to_projects.emit()
     
     def request_navigate_to_services(self) -> None:
         """Request navigation to services view."""

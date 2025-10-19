@@ -28,6 +28,8 @@ class TimerViewModel(QObject):
     elapsed_updated = Signal(int)  # seconds
     progress_updated = Signal(int, object)  # elapsed_seconds, target_seconds (Optional[int])
     entries_changed = Signal(list)  # List of entry dicts
+    profiles_changed = Signal(list)  # List of profile dicts
+    projects_changed = Signal(list)  # List of project dicts for selected profile
     
     def __init__(self, state_service: "StateService", timer_service: "TimerService") -> None:
         """Initialize timer ViewModel.
@@ -45,11 +47,16 @@ class TimerViewModel(QObject):
         self._entries: List[dict] = []
         self._elapsed_seconds: int = 0
         self._target_seconds: Optional[int] = None
+        self._profiles: List[dict] = []
+        self._projects: List[dict] = []
+        self._selected_profile_id: Optional[int] = None
+        self._selected_project_id: Optional[int] = None
         
         # Connect to state changes
         self.state.active_entry_changed.connect(self._on_active_entry_changed)
         self.state.profile_changed.connect(self._on_profile_changed)
         self.state.entries_updated.connect(self._refresh_entries)
+        self.state.profiles_updated.connect(self._refresh_profiles)
         
         # Update timer for elapsed time
         self._update_timer = QTimer(self)
@@ -58,6 +65,7 @@ class TimerViewModel(QObject):
         self._update_timer.start()
         
         # Initial load
+        self._refresh_profiles()
         self._refresh_entries()
         self._update_elapsed()
     
@@ -83,6 +91,26 @@ class TimerViewModel(QObject):
         """Get list of time entries."""
         return self._entries
     
+    @property
+    def profiles(self) -> List[dict]:
+        """Get list of all profiles."""
+        return self._profiles
+    
+    @property
+    def projects(self) -> List[dict]:
+        """Get list of projects for selected profile."""
+        return self._projects
+    
+    @property
+    def selected_profile_id(self) -> Optional[int]:
+        """Get selected profile ID for timer."""
+        return self._selected_profile_id
+    
+    @property
+    def selected_project_id(self) -> Optional[int]:
+        """Get selected project ID for timer."""
+        return self._selected_project_id
+    
     # Public methods
     
     def toggle_timer(self, note: str = "") -> None:
@@ -91,7 +119,8 @@ class TimerViewModel(QObject):
         Args:
             note: Optional note for new entry
         """
-        profile_id = self.state.current_profile_id
+        # Use selected profile, fall back to current profile
+        profile_id = self._selected_profile_id or self.state.current_profile_id
         if profile_id is None:
             return  # View should handle this case
         
@@ -99,9 +128,27 @@ class TimerViewModel(QObject):
         if active:
             self.timer_service.stop()
         else:
-            self.timer_service.start(profile_id, note=note)
+            self.timer_service.start(profile_id, note=note, project_id=self._selected_project_id)
         
         self.timer_state_changed.emit(self.is_running)
+    
+    def select_profile(self, profile_id: Optional[int]) -> None:
+        """Select a profile for the timer.
+        
+        Args:
+            profile_id: Profile ID to select, or None
+        """
+        self._selected_profile_id = profile_id
+        self._selected_project_id = None  # Clear project selection
+        self._refresh_projects()
+    
+    def select_project(self, project_id: Optional[int]) -> None:
+        """Select a project for the timer.
+        
+        Args:
+            project_id: Project ID to select, or None
+        """
+        self._selected_project_id = project_id
     
     def update_entry_note_tags(self, entry_id: int, note: str, tags: str) -> None:
         """Update an entry's note and tags.
@@ -213,4 +260,19 @@ class TimerViewModel(QObject):
                 total += end_ts - start_ts
         
         return total
+    
+    def _refresh_profiles(self) -> None:
+        """Refresh profiles list from database."""
+        rows = self.repo.list_profiles()
+        self._profiles = [dict(row) for row in rows]
+        self.profiles_changed.emit(self._profiles)
+    
+    def _refresh_projects(self) -> None:
+        """Refresh projects list for selected profile."""
+        if self._selected_profile_id is None:
+            self._projects = []
+        else:
+            rows = self.repo.list_projects(profile_id=self._selected_profile_id)
+            self._projects = [dict(row) for row in rows]
+        self.projects_changed.emit(self._projects)
 

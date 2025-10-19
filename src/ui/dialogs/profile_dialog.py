@@ -18,7 +18,6 @@ class ProfileDialog(QDialog):
         parent=None,
         title: str = "Profile",
         name: str = "",
-        company: str | None = None,
         contact_person: str | None = None,
         email: str | None = None,
         phone: str | None = None,
@@ -29,7 +28,6 @@ class ProfileDialog(QDialog):
             parent: Parent widget
             title: Dialog window title
             name: Profile name
-            company: Company name
             contact_person: Contact person name
             email: Contact email
             phone: Contact phone number
@@ -45,8 +43,6 @@ class ProfileDialog(QDialog):
         layout.addWidget(self.name_edit)
         
         # Contact fields
-        self.company_edit = QLineEdit(self)
-        self.company_edit.setText(company or "")
         self.contact_edit = QLineEdit(self)
         self.contact_edit.setText(contact_person or "")
         self.email_edit = QLineEdit(self)
@@ -54,8 +50,6 @@ class ProfileDialog(QDialog):
         self.phone_edit = QLineEdit(self)
         self.phone_edit.setText(phone or "")
         
-        layout.addWidget(QLabel("Company"))
-        layout.addWidget(self.company_edit)
         layout.addWidget(QLabel("Contact Person"))
         layout.addWidget(self.contact_edit)
         layout.addWidget(QLabel("Email"))
@@ -73,15 +67,14 @@ class ProfileDialog(QDialog):
         """Get the profile name."""
         return self.name_edit.text().strip()
 
-    def get_contact_fields(self) -> tuple[str | None, str | None, str | None, str | None]:
+    def get_contact_fields(self) -> tuple[str | None, str | None, str | None]:
         """Get contact information fields.
         
         Returns:
-            Tuple of (company, contact_person, email, phone)
+            Tuple of (contact_person, email, phone)
         """
-        company = self.company_edit.text().strip() or None
         contact = self.contact_edit.text().strip() or None
         email = self.email_edit.text().strip() or None
         phone = self.phone_edit.text().strip() or None
-        return company, contact, email, phone
+        return contact, email, phone
 

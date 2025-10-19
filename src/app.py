@@ -13,6 +13,7 @@ from src.services.timer_service import TimerService
 from src.viewmodels import (
     DashboardViewModel,
     ProfilesViewModel,
+    ProjectsViewModel,
     ServicesViewModel,
     TimerViewModel,
 )
@@ -61,6 +62,7 @@ def main() -> int:
     dashboard_vm = DashboardViewModel()
     timer_vm = TimerViewModel(state_service, timer_service)
     profiles_vm = ProfilesViewModel(state_service, timer_service)
+    projects_vm = ProjectsViewModel(state_service)
     services_vm = ServicesViewModel(state_service)
     
     # Create main window with ViewModels
@@ -70,6 +72,7 @@ def main() -> int:
         dashboard_vm=dashboard_vm,
         timer_vm=timer_vm,
         profiles_vm=profiles_vm,
+        projects_vm=projects_vm,
         services_vm=services_vm,
     )
     

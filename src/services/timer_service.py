@@ -37,13 +37,14 @@ class TimerService(QObject):
         """
         return self.state.active_entry
     
-    def start(self, profile_id: int, note: str = "", tags: list[str] | None = None) -> int:
+    def start(self, profile_id: int, note: str = "", tags: list[str] | None = None, project_id: int | None = None) -> int:
         """Start a timer for the given profile.
         
         Args:
             profile_id: Profile to track time for
             note: Optional note for the entry
             tags: Optional tags for the entry
+            project_id: Optional project to track time for
             
         Returns:
             ID of the created entry
@@ -52,7 +53,7 @@ class TimerService(QObject):
         if self.repo.get_active_entry() is not None:
             self.stop()
         
-        entry_id = self.repo.start_entry(profile_id, note, ",".join(tags or []))
+        entry_id = self.repo.start_entry(profile_id, note, ",".join(tags or []), project_id)
         prof = self.repo.get_profile(profile_id)
         
         # Log event

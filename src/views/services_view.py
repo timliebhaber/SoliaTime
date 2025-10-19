@@ -73,6 +73,9 @@ class ServicesView(QWidget):
         
         # ViewModel → UI
         self.viewmodel.services_changed.connect(self._update_services_table)
+        
+        # Initial load - populate with existing services from viewmodel
+        self._update_services_table(self.viewmodel.services)
     
     # UI event handlers
     

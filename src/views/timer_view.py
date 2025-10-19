@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
+    QComboBox,
     QDialog,
     QHeaderView,
     QHBoxLayout,
@@ -51,6 +52,20 @@ class TimerView(QWidget):
         """Build the UI components."""
         layout = QVBoxLayout(self)
         
+        # Project selection row
+        selection_row = QHBoxLayout()
+        selection_row.addWidget(QLabel("Profile:"))
+        self.profile_combo = QComboBox()
+        self.profile_combo.addItem("Select profile...", None)
+        selection_row.addWidget(self.profile_combo)
+        
+        selection_row.addWidget(QLabel("Project:"))
+        self.project_combo = QComboBox()
+        self.project_combo.addItem("No project", None)
+        self.project_combo.setEnabled(False)
+        selection_row.addWidget(self.project_combo)
+        selection_row.addStretch()
+        
         # Top controls
         top = QHBoxLayout()
         self.toggle_btn = QPushButton("Start")
@@ -66,9 +81,11 @@ class TimerView(QWidget):
         top.addWidget(self.et_label)
         top.addWidget(self.note_edit, 1)
         
+        layout.addLayout(selection_row)
+        
         # Entries table
-        self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels(["Profile", "Start", "End", "Duration", "Note"])
+        self.table = QTableWidget(0, 6)
+        self.table.setHorizontalHeaderLabels(["Profile", "Project", "Start", "End", "Duration", "Note"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
@@ -89,6 +106,8 @@ class TimerView(QWidget):
     def _connect_signals(self) -> None:
         """Connect UI and ViewModel signals."""
         # UI → ViewModel
+        self.profile_combo.currentIndexChanged.connect(self._on_profile_selected)
+        self.project_combo.currentIndexChanged.connect(self._on_project_selected)
         self.toggle_btn.clicked.connect(self._on_toggle_clicked)
         self.table.itemDoubleClicked.connect(self._on_edit_entry)
         
@@ -97,11 +116,33 @@ class TimerView(QWidget):
         self.viewmodel.elapsed_updated.connect(self._update_elapsed)
         self.viewmodel.progress_updated.connect(self._update_progress)
         self.viewmodel.entries_changed.connect(self._update_entries_table)
+        self.viewmodel.profiles_changed.connect(self._update_profiles_combo)
+        self.viewmodel.projects_changed.connect(self._update_projects_combo)
+        
+        # Initial load
+        self._update_profiles_combo(self.viewmodel.profiles)
     
     # UI event handlers
     
+    def _on_profile_selected(self, index: int) -> None:
+        """Handle profile selection change."""
+        profile_id = self.profile_combo.currentData()
+        self.viewmodel.select_profile(profile_id)
+        # Enable/disable project combo based on selection
+        self.project_combo.setEnabled(profile_id is not None)
+    
+    def _on_project_selected(self, index: int) -> None:
+        """Handle project selection change."""
+        project_id = self.project_combo.currentData()
+        self.viewmodel.select_project(project_id)
+    
     def _on_toggle_clicked(self) -> None:
         """Handle toggle button click."""
+        # Check if profile is selected
+        if self.viewmodel.selected_profile_id is None and self.viewmodel.state.current_profile_id is None:
+            QMessageBox.warning(self, "No Profile", "Please select a profile first.")
+            return
+        
         note = self.note_edit.text().strip()
         self.viewmodel.toggle_timer(note)
         if not self.viewmodel.is_running:
@@ -206,8 +247,39 @@ class TimerView(QWidget):
             dur = (end_ts or now) - (start_ts or now) if start_ts else 0
             
             self.table.setItem(row, 0, QTableWidgetItem(str(entry.get("profile_name", ""))))
-            self.table.setItem(row, 1, QTableWidgetItem(format_timestamp(start_ts or 0)))
-            self.table.setItem(row, 2, QTableWidgetItem(format_timestamp(end_ts) if end_ts else "—"))
-            self.table.setItem(row, 3, QTableWidgetItem(format_duration(dur)))
-            self.table.setItem(row, 4, QTableWidgetItem(str(entry.get("note", ""))))
+            self.table.setItem(row, 1, QTableWidgetItem(str(entry.get("project_name", "—"))))
+            self.table.setItem(row, 2, QTableWidgetItem(format_timestamp(start_ts or 0)))
+            self.table.setItem(row, 3, QTableWidgetItem(format_timestamp(end_ts) if end_ts else "—"))
+            self.table.setItem(row, 4, QTableWidgetItem(format_duration(dur)))
+            self.table.setItem(row, 5, QTableWidgetItem(str(entry.get("note", ""))))
+    
+    def _update_profiles_combo(self, profiles: list) -> None:
+        """Update profiles combo box with new data.
+        
+        Args:
+            profiles: List of profile dicts
+        """
+        self.profile_combo.blockSignals(True)
+        self.profile_combo.clear()
+        self.profile_combo.addItem("Select profile...", None)
+        
+        for prof in profiles:
+            self.profile_combo.addItem(str(prof["name"]), int(prof["id"]))
+        
+        self.profile_combo.blockSignals(False)
+    
+    def _update_projects_combo(self, projects: list) -> None:
+        """Update projects combo box with new data.
+        
+        Args:
+            projects: List of project dicts
+        """
+        self.project_combo.blockSignals(True)
+        self.project_combo.clear()
+        self.project_combo.addItem("No project", None)
+        
+        for proj in projects:
+            self.project_combo.addItem(str(proj["name"]), int(proj["id"]))
+        
+        self.project_combo.blockSignals(False)
 

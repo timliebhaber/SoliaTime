@@ -93,13 +93,13 @@ class Repository:
         ).fetchone()
 
     def start_entry(
-        self, profile_id: int, note: str = "", tags_csv: str = ""
+        self, profile_id: int, note: str = "", tags_csv: str = "", project_id: int | None = None
     ) -> int:
         now = int(time.time())
         with self.conn:
             cur = self.conn.execute(
-                "INSERT INTO time_entries(profile_id, start_ts, note, tags) VALUES(?, ?, ?, ?)",
-                (profile_id, now, note, tags_csv),
+                "INSERT INTO time_entries(profile_id, project_id, start_ts, note, tags) VALUES(?, ?, ?, ?, ?)",
+                (profile_id, project_id, now, note, tags_csv),
             )
             return cur.lastrowid
 
@@ -119,18 +119,20 @@ class Repository:
         clauses: list[str] = []
         params: list[object] = []
         if profile_id is not None:
-            clauses.append("profile_id = ?")
+            clauses.append("e.profile_id = ?")
             params.append(profile_id)
         if start_ts is not None:
-            clauses.append("start_ts >= ?")
+            clauses.append("e.start_ts >= ?")
             params.append(start_ts)
         if end_ts is not None:
-            clauses.append("start_ts <= ?")
+            clauses.append("e.start_ts <= ?")
             params.append(end_ts)
         where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
         sql = (
-            "SELECT e.*, p.name as profile_name, p.color as profile_color "
-            "FROM time_entries e JOIN profiles p ON p.id = e.profile_id "
+            "SELECT e.*, p.name as profile_name, p.color as profile_color, proj.name as project_name "
+            "FROM time_entries e "
+            "JOIN profiles p ON p.id = e.profile_id "
+            "LEFT JOIN projects proj ON proj.id = e.project_id "
             f"{where} ORDER BY e.start_ts DESC"
         )
         return self.conn.execute(sql, params).fetchall()
@@ -291,3 +293,173 @@ class Repository:
         """Delete a profile service todo."""
         with self.conn:
             self.conn.execute("DELETE FROM profile_service_todos WHERE id = ?", (todo_id,))
+
+    # Projects
+    def create_project(
+        self,
+        profile_id: int,
+        name: str,
+        estimated_seconds: int | None = None,
+        service_id: int | None = None,
+        deadline_ts: int | None = None,
+        notes: str | None = None,
+    ) -> int:
+        """Create a new project.
+        
+        Args:
+            profile_id: Profile ID this project belongs to
+            name: Project name
+            estimated_seconds: Estimated time in seconds
+            service_id: Service ID (optional)
+            deadline_ts: Deadline timestamp (optional)
+            notes: Project notes (optional)
+            
+        Returns:
+            ID of created project
+        """
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT INTO projects(profile_id, name, estimated_seconds, service_id, deadline_ts, notes) VALUES(?, ?, ?, ?, ?, ?)",
+                (profile_id, name, estimated_seconds, service_id, deadline_ts, notes),
+            )
+            return cur.lastrowid
+
+    def list_projects(self, profile_id: int | None = None) -> list[sqlite3.Row]:
+        """List all projects, optionally filtered by profile.
+        
+        Args:
+            profile_id: Optional profile ID to filter by
+            
+        Returns:
+            List of project rows with service and profile details
+        """
+        if profile_id is not None:
+            return self.conn.execute(
+                """
+                SELECT p.*, s.name as service_name, s.rate_cents, prof.name as profile_name
+                FROM projects p
+                LEFT JOIN services s ON s.id = p.service_id
+                JOIN profiles prof ON prof.id = p.profile_id
+                WHERE p.profile_id = ?
+                ORDER BY p.created_ts DESC
+                """,
+                (profile_id,)
+            ).fetchall()
+        else:
+            return self.conn.execute(
+                """
+                SELECT p.*, s.name as service_name, s.rate_cents, prof.name as profile_name
+                FROM projects p
+                LEFT JOIN services s ON s.id = p.service_id
+                JOIN profiles prof ON prof.id = p.profile_id
+                ORDER BY p.created_ts DESC
+                """
+            ).fetchall()
+
+    def get_project(self, project_id: int) -> Optional[sqlite3.Row]:
+        """Get a specific project.
+        
+        Args:
+            project_id: Project ID
+            
+        Returns:
+            Project row or None
+        """
+        return self.conn.execute(
+            """
+            SELECT p.*, s.name as service_name, s.rate_cents, prof.name as profile_name
+            FROM projects p
+            LEFT JOIN services s ON s.id = p.service_id
+            JOIN profiles prof ON prof.id = p.profile_id
+            WHERE p.id = ?
+            """,
+            (project_id,)
+        ).fetchone()
+
+    def update_project(
+        self,
+        project_id: int,
+        name: str,
+        estimated_seconds: int | None,
+        service_id: int | None,
+        deadline_ts: int | None,
+        notes: str | None,
+    ) -> None:
+        """Update a project.
+        
+        Args:
+            project_id: Project ID
+            name: Project name
+            estimated_seconds: Estimated time in seconds
+            service_id: Service ID (can be None)
+            deadline_ts: Deadline timestamp (can be None)
+            notes: Project notes (can be None)
+        """
+        with self.conn:
+            self.conn.execute(
+                "UPDATE projects SET name = ?, estimated_seconds = ?, service_id = ?, deadline_ts = ?, notes = ? WHERE id = ?",
+                (name, estimated_seconds, service_id, deadline_ts, notes, project_id),
+            )
+
+    def delete_project(self, project_id: int) -> None:
+        """Delete a project.
+        
+        Args:
+            project_id: Project ID
+        """
+        with self.conn:
+            self.conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+
+    # Project Todos
+    def list_project_todos(self, project_id: int) -> list[sqlite3.Row]:
+        """List all todos for a project.
+        
+        Args:
+            project_id: Project ID
+            
+        Returns:
+            List of todo rows
+        """
+        return self.conn.execute(
+            "SELECT * FROM project_todos WHERE project_id = ? ORDER BY created_ts ASC, id ASC",
+            (project_id,)
+        ).fetchall()
+
+    def add_project_todo(self, project_id: int, text: str) -> int:
+        """Add a todo to a project.
+        
+        Args:
+            project_id: Project ID
+            text: Todo text
+            
+        Returns:
+            ID of created todo
+        """
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT INTO project_todos(project_id, text, completed) VALUES(?, ?, 0)",
+                (project_id, text),
+            )
+            return cur.lastrowid
+
+    def set_project_todo_completed(self, todo_id: int, completed: bool) -> None:
+        """Set completion status of a project todo.
+        
+        Args:
+            todo_id: Todo ID
+            completed: Completion status
+        """
+        with self.conn:
+            self.conn.execute(
+                "UPDATE project_todos SET completed = ? WHERE id = ?",
+                (1 if completed else 0, todo_id),
+            )
+
+    def delete_project_todo(self, todo_id: int) -> None:
+        """Delete a project todo.
+        
+        Args:
+            todo_id: Todo ID
+        """
+        with self.conn:
+            self.conn.execute("DELETE FROM project_todos WHERE id = ?", (todo_id,))

@@ -1,7 +1,7 @@
 PRAGMA foreign_keys = ON;
 
 -- schema version
-PRAGMA user_version = 8;
+PRAGMA user_version = 10;
 
 CREATE TABLE IF NOT EXISTS profiles (
   id INTEGER PRIMARY KEY,
@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 CREATE TABLE IF NOT EXISTS time_entries (
   id INTEGER PRIMARY KEY,
   profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
   start_ts INTEGER NOT NULL,
   end_ts INTEGER,
   note TEXT,
@@ -66,5 +67,28 @@ CREATE TABLE IF NOT EXISTS profile_service_todos (
   created_ts INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_profile_service_todos_service ON profile_service_todos(profile_service_id);
+
+-- Projects (larger units of work for profiles)
+CREATE TABLE IF NOT EXISTS projects (
+  id INTEGER PRIMARY KEY,
+  profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  estimated_seconds INTEGER,
+  service_id INTEGER REFERENCES services(id) ON DELETE SET NULL,
+  deadline_ts INTEGER,
+  notes TEXT,
+  created_ts INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_projects_profile ON projects(profile_id);
+
+-- Project Todos
+CREATE TABLE IF NOT EXISTS project_todos (
+  id INTEGER PRIMARY KEY,
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  completed INTEGER NOT NULL DEFAULT 0,
+  created_ts INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_project_todos_project ON project_todos(project_id);
 
 
