@@ -1,27 +1,38 @@
+"""Main application entry point."""
 import sys
-import os
 from pathlib import Path
 
-from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QApplication
 
-from src.services.settings import ensure_app_dirs
 from src.models.db import get_connection
 from src.models.repository import Repository
-from src.services.timer_manager import TimerManager
-from src.ui.main_window import MainWindow
+from src.services.settings_service import SettingsStore, ensure_app_dirs
+from src.services.state_service import StateService
+from src.services.timer_service import TimerService
+from src.viewmodels import (
+    DashboardViewModel,
+    ProfilesViewModel,
+    ServicesViewModel,
+    TimerViewModel,
+)
+from src.views.main_window import MainWindow
 
 
 def main() -> int:
+    """Main application entry point.
+    
+    Returns:
+        Exit code
+    """
     ensure_app_dirs()
 
     app = QApplication(sys.argv)
     app.setApplicationName("Solia Time Tracking")
     app.setOrganizationName("Solia")
 
-    # Set window icon (dev and PyInstaller runtimes)
+    # Set application icon
     try:
-        # Resolve base path for dev and PyInstaller (_MEIPASS)
         base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
         candidates = [
             base / "ui" / "resources" / "App.ico",
@@ -35,12 +46,35 @@ def main() -> int:
     except Exception:
         pass
 
+    # Initialize services layer (bottom of dependency chain)
     conn = get_connection()
     repo = Repository(conn)
-    timer = TimerManager(repo)
-
-    window = MainWindow(repository=repo, timer_manager=timer)
+    settings_store = SettingsStore()
+    
+    # Create central state service (Singleton)
+    state_service = StateService(repo, settings_store)
+    
+    # Create timer service
+    timer_service = TimerService(state_service)
+    
+    # Create ViewModels
+    dashboard_vm = DashboardViewModel()
+    timer_vm = TimerViewModel(state_service, timer_service)
+    profiles_vm = ProfilesViewModel(state_service, timer_service)
+    services_vm = ServicesViewModel(state_service)
+    
+    # Create main window with ViewModels
+    window = MainWindow(
+        state_service=state_service,
+        timer_service=timer_service,
+        dashboard_vm=dashboard_vm,
+        timer_vm=timer_vm,
+        profiles_vm=profiles_vm,
+        services_vm=services_vm,
+    )
+    
     window.show()
+    
     # Ensure window is foreground and not minimized
     try:
         window.showNormal()
@@ -54,5 +88,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

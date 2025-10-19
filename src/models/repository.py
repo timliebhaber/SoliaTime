@@ -19,11 +19,12 @@ class Repository:
         contact_person: str | None = None,
         email: str | None = None,
         phone: str | None = None,
+        notes: str | None = None,
     ) -> int:
         with self.conn:
             cur = self.conn.execute(
-                "INSERT INTO profiles(name, color, archived, target_seconds, company, contact_person, email, phone) VALUES(?, ?, 0, ?, ?, ?, ?, ?)",
-                (name, color, target_seconds, company, contact_person, email, phone),
+                "INSERT INTO profiles(name, color, archived, target_seconds, company, contact_person, email, phone, notes) VALUES(?, ?, 0, ?, ?, ?, ?, ?, ?)",
+                (name, color, target_seconds, company, contact_person, email, phone, notes),
             )
             return cur.lastrowid
 
@@ -59,6 +60,13 @@ class Repository:
             self.conn.execute(
                 "UPDATE profiles SET company = ?, contact_person = ?, email = ?, phone = ? WHERE id = ?",
                 (company, contact_person, email, phone, profile_id),
+            )
+
+    def set_profile_notes(self, profile_id: int, notes: str | None) -> None:
+        with self.conn:
+            self.conn.execute(
+                "UPDATE profiles SET notes = ? WHERE id = ?",
+                (notes, profile_id),
             )
 
     def set_profile_archived(self, profile_id: int, archived: bool) -> None:
@@ -180,3 +188,106 @@ class Repository:
                 (1 if completed else 0, todo_id),
             )
 
+
+    # Services
+    def list_services(self) -> list[sqlite3.Row]:
+        return self.conn.execute(
+            "SELECT * FROM services ORDER BY name"
+        ).fetchall()
+
+    def create_service(self, name: str, rate_cents: int, estimated_seconds: int | None = None) -> int:
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT INTO services(name, rate_cents, estimated_seconds) VALUES(?, ?, ?)",
+                (name, rate_cents, estimated_seconds),
+            )
+            return cur.lastrowid
+
+    def update_service(self, service_id: int, name: str, rate_cents: int, estimated_seconds: int | None) -> None:
+        with self.conn:
+            self.conn.execute(
+                "UPDATE services SET name = ?, rate_cents = ?, estimated_seconds = ? WHERE id = ?",
+                (name, rate_cents, estimated_seconds, service_id),
+            )
+
+    def delete_service(self, service_id: int) -> None:
+        with self.conn:
+            self.conn.execute("DELETE FROM services WHERE id = ?", (service_id,))
+
+    # Profile Services
+    def add_profile_service(self, profile_id: int, service_id: int, notes: str | None = None) -> int:
+        """Add a service instance to a profile."""
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT INTO profile_services(profile_id, service_id, notes) VALUES(?, ?, ?)",
+                (profile_id, service_id, notes),
+            )
+            return cur.lastrowid
+
+    def list_profile_services(self, profile_id: int) -> list[sqlite3.Row]:
+        """List all service instances for a profile with service details."""
+        return self.conn.execute(
+            """
+            SELECT ps.*, s.name as service_name, s.rate_cents, s.estimated_seconds
+            FROM profile_services ps
+            JOIN services s ON s.id = ps.service_id
+            WHERE ps.profile_id = ?
+            ORDER BY ps.created_ts DESC
+            """,
+            (profile_id,)
+        ).fetchall()
+
+    def get_profile_service(self, profile_service_id: int) -> Optional[sqlite3.Row]:
+        """Get a specific profile service instance."""
+        return self.conn.execute(
+            """
+            SELECT ps.*, s.name as service_name, s.rate_cents, s.estimated_seconds
+            FROM profile_services ps
+            JOIN services s ON s.id = ps.service_id
+            WHERE ps.id = ?
+            """,
+            (profile_service_id,)
+        ).fetchone()
+
+    def update_profile_service_notes(self, profile_service_id: int, notes: str | None) -> None:
+        """Update notes for a profile service instance."""
+        with self.conn:
+            self.conn.execute(
+                "UPDATE profile_services SET notes = ? WHERE id = ?",
+                (notes, profile_service_id),
+            )
+
+    def delete_profile_service(self, profile_service_id: int) -> None:
+        """Delete a profile service instance."""
+        with self.conn:
+            self.conn.execute("DELETE FROM profile_services WHERE id = ?", (profile_service_id,))
+
+    # Profile Service Todos
+    def list_profile_service_todos(self, profile_service_id: int) -> list[sqlite3.Row]:
+        """List all todos for a profile service instance."""
+        return self.conn.execute(
+            "SELECT * FROM profile_service_todos WHERE profile_service_id = ? ORDER BY created_ts ASC, id ASC",
+            (profile_service_id,)
+        ).fetchall()
+
+    def add_profile_service_todo(self, profile_service_id: int, text: str) -> int:
+        """Add a todo to a profile service instance."""
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT INTO profile_service_todos(profile_service_id, text, completed) VALUES(?, ?, 0)",
+                (profile_service_id, text),
+            )
+            return cur.lastrowid
+
+    def set_profile_service_todo_completed(self, todo_id: int, completed: bool) -> None:
+        """Set completion status of a profile service todo."""
+        with self.conn:
+            self.conn.execute(
+                "UPDATE profile_service_todos SET completed = ? WHERE id = ?",
+                (1 if completed else 0, todo_id),
+            )
+
+    def delete_profile_service_todo(self, todo_id: int) -> None:
+        """Delete a profile service todo."""
+        with self.conn:
+            self.conn.execute("DELETE FROM profile_service_todos WHERE id = ?", (todo_id,))

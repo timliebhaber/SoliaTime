@@ -1,7 +1,7 @@
 PRAGMA foreign_keys = ON;
 
 -- schema version
-PRAGMA user_version = 4;
+PRAGMA user_version = 8;
 
 CREATE TABLE IF NOT EXISTS profiles (
   id INTEGER PRIMARY KEY,
@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS profiles (
   company TEXT,
   contact_person TEXT,
   email TEXT,
-  phone TEXT
+  phone TEXT,
+  notes TEXT
 );
 
 CREATE TABLE IF NOT EXISTS time_entries (
@@ -36,5 +37,34 @@ CREATE TABLE IF NOT EXISTS profile_todos (
   created_ts INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_todos_profile ON profile_todos(profile_id);
+
+
+-- Services (catalog of billable services with hourly rate in cents)
+CREATE TABLE IF NOT EXISTS services (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  rate_cents INTEGER NOT NULL,
+  estimated_seconds INTEGER
+);
+
+-- Profile Services (instances of services added to profiles)
+CREATE TABLE IF NOT EXISTS profile_services (
+  id INTEGER PRIMARY KEY,
+  profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  service_id INTEGER NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  notes TEXT,
+  created_ts INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_profile_services_profile ON profile_services(profile_id);
+
+-- Profile Service Todos (todos for each service instance)
+CREATE TABLE IF NOT EXISTS profile_service_todos (
+  id INTEGER PRIMARY KEY,
+  profile_service_id INTEGER NOT NULL REFERENCES profile_services(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  completed INTEGER NOT NULL DEFAULT 0,
+  created_ts INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_profile_service_todos_service ON profile_service_todos(profile_service_id);
 
 

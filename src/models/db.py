@@ -60,5 +60,49 @@ def _init_db(conn: sqlite3.Connection) -> None:
             )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_todos_profile ON profile_todos(profile_id);")
             conn.execute("PRAGMA user_version = 4;")
+        elif version == 4:
+            # Migrate to v5: add notes column to profiles
+            try:
+                conn.execute("ALTER TABLE profiles ADD COLUMN notes TEXT;")
+            except Exception:
+                # Column may already exist
+                pass
+            conn.execute("PRAGMA user_version = 5;")
+        elif version == 5:
+            # Migrate to v6: create services table
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS services (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, rate_cents INTEGER NOT NULL);"
+            )
+            conn.execute("PRAGMA user_version = 6;")
+        elif version == 6:
+            # Migrate to v7: add estimated_seconds to services
+            try:
+                conn.execute("ALTER TABLE services ADD COLUMN estimated_seconds INTEGER;")
+            except Exception:
+                pass
+            conn.execute("PRAGMA user_version = 7;")
+        elif version == 7:
+            # Migrate to v8: create profile_services and profile_service_todos
+            conn.execute(
+                """CREATE TABLE IF NOT EXISTS profile_services (
+                    id INTEGER PRIMARY KEY,
+                    profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+                    service_id INTEGER NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+                    notes TEXT,
+                    created_ts INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+                );"""
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_profile_services_profile ON profile_services(profile_id);")
+            conn.execute(
+                """CREATE TABLE IF NOT EXISTS profile_service_todos (
+                    id INTEGER PRIMARY KEY,
+                    profile_service_id INTEGER NOT NULL REFERENCES profile_services(id) ON DELETE CASCADE,
+                    text TEXT NOT NULL,
+                    completed INTEGER NOT NULL DEFAULT 0,
+                    created_ts INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+                );"""
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_profile_service_todos_service ON profile_service_todos(profile_service_id);")
+            conn.execute("PRAGMA user_version = 8;")
 
 

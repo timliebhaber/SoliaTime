@@ -1,0 +1,81 @@
+"""Dashboard view with navigation tiles."""
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QGridLayout,
+    QLabel,
+    QVBoxLayout,
+    QWidget,
+)
+
+from src.ui.components import TileButton
+
+if TYPE_CHECKING:
+    from src.viewmodels import DashboardViewModel
+
+
+class DashboardView(QWidget):
+    """Dashboard view with tiles for navigation.
+    
+    Pure UI component - delegates all actions to ViewModel.
+    """
+
+    def __init__(self, viewmodel: "DashboardViewModel", parent: QWidget | None = None) -> None:
+        """Initialize dashboard view.
+        
+        Args:
+            viewmodel: Dashboard ViewModel
+            parent: Parent widget
+        """
+        super().__init__(parent)
+        self.viewmodel = viewmodel
+        self._build_ui()
+        self._connect_signals()
+
+    def _build_ui(self) -> None:
+        """Build the UI components."""
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignCenter)
+        
+        # Title
+        title_label = QLabel("Solia Time Tracking")
+        title_font = title_label.font()
+        title_font.setPointSize(24)
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        title_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title_label)
+        layout.addSpacing(40)
+        
+        # Tiles container
+        tiles_container = QWidget()
+        tiles_layout = QGridLayout(tiles_container)
+        tiles_layout.setAlignment(Qt.AlignCenter)
+        tiles_layout.setSpacing(20)
+        
+        # Timer tile
+        self.timer_tile = TileButton("Timer", "⏱️")
+        self.timer_tile.set_click_callback(self.viewmodel.request_navigate_to_timer)
+        tiles_layout.addWidget(self.timer_tile, 0, 0)
+        
+        # Profiles tile
+        self.profiles_tile = TileButton("Profiles", "👥")
+        self.profiles_tile.set_click_callback(self.viewmodel.request_navigate_to_profiles)
+        tiles_layout.addWidget(self.profiles_tile, 0, 1)
+        
+        # Services tile
+        self.services_tile = TileButton("Services", "💼")
+        self.services_tile.set_click_callback(self.viewmodel.request_navigate_to_services)
+        tiles_layout.addWidget(self.services_tile, 0, 2)
+        
+        layout.addWidget(tiles_container)
+        layout.addStretch()
+
+    def _connect_signals(self) -> None:
+        """Connect ViewModel signals."""
+        # Dashboard has no state to update from ViewModel
+        pass
+
