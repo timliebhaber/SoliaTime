@@ -75,12 +75,15 @@ class ProjectDialog(QDialog):
         self.name_edit.setText(name)
         form.addRow("Name", self.name_edit)
         
-        # Estimated time
-        self.estimated_hours_spin = QSpinBox(self)
-        self.estimated_hours_spin.setRange(0, 10000)
-        self.estimated_hours_spin.setSuffix(" hours")
-        self.estimated_hours_spin.setValue(int(estimated_hours))
-        form.addRow("Estimated Time", self.estimated_hours_spin)
+        # Estimated time (HH:MM format)
+        self.estimated_time_edit = QLineEdit(self)
+        self.estimated_time_edit.setPlaceholderText("HH:MM (e.g., 02:30)")
+        # Convert hours to HH:MM format
+        if estimated_hours > 0:
+            hours = int(estimated_hours)
+            minutes = int((estimated_hours - hours) * 60)
+            self.estimated_time_edit.setText(f"{hours:02d}:{minutes:02d}")
+        form.addRow("Estimated Time", self.estimated_time_edit)
         
         # Service selection
         self.service_combo = QComboBox(self)
@@ -105,7 +108,9 @@ class ProjectDialog(QDialog):
             qdate = QDate(deadline.year, deadline.month, deadline.day)
             self.deadline_edit.setDate(qdate)
         else:
-            self.deadline_edit.setDate(QDate(2000, 1, 1))
+            # Set to today's date by default for new projects
+            today = datetime.now()
+            self.deadline_edit.setDate(QDate(today.year, today.month, today.day))
         
         form.addRow("Deadline", self.deadline_edit)
         
@@ -133,11 +138,26 @@ class ProjectDialog(QDialog):
         return self.name_edit.text().strip()
 
     def get_estimated_seconds(self) -> Optional[int]:
-        """Get the estimated time in seconds."""
-        hours = self.estimated_hours_spin.value()
-        if hours > 0:
-            return hours * 3600
-        return None
+        """Get the estimated time in seconds from HH:MM format."""
+        time_str = self.estimated_time_edit.text().strip()
+        if not time_str:
+            return None
+        
+        # Parse HH:MM format
+        try:
+            parts = time_str.split(":")
+            if len(parts) != 2:
+                return None
+            
+            hours = int(parts[0])
+            minutes = int(parts[1])
+            
+            if hours < 0 or minutes < 0 or minutes >= 60:
+                return None
+            
+            return (hours * 3600) + (minutes * 60)
+        except ValueError:
+            return None
 
     def get_service_id(self) -> Optional[int]:
         """Get the selected service ID."""

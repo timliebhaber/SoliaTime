@@ -63,6 +63,7 @@ class TimerView(QWidget):
         self.project_combo = QComboBox()
         self.project_combo.addItem("No project", None)
         self.project_combo.setEnabled(False)
+        self.project_combo.setMinimumWidth(250)
         selection_row.addWidget(self.project_combo)
         selection_row.addStretch()
         
@@ -134,6 +135,7 @@ class TimerView(QWidget):
     def _on_project_selected(self, index: int) -> None:
         """Handle project selection change."""
         project_id = self.project_combo.currentData()
+        print(f"DEBUG: Project selected - index: {index}, project_id: {project_id}")
         self.viewmodel.select_project(project_id)
     
     def _on_toggle_clicked(self) -> None:
@@ -235,6 +237,7 @@ class TimerView(QWidget):
         Args:
             entries: List of entry dicts
         """
+        print(f"DEBUG: _update_entries_table called with {len(entries)} entries")
         self.table.setRowCount(0)
         now = int(time.time())
         
@@ -281,5 +284,7 @@ class TimerView(QWidget):
         for proj in projects:
             self.project_combo.addItem(str(proj["name"]), int(proj["id"]))
         
+        # Reset to "No project" (index 0)
+        self.project_combo.setCurrentIndex(0)
         self.project_combo.blockSignals(False)
 

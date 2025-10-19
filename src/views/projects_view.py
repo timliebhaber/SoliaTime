@@ -328,6 +328,9 @@ class ProjectsView(QWidget):
             notes
         )
         
+        # Reload project details to reflect changes
+        self._load_project_details(project_id)
+        
         QMessageBox.information(self, "Saved", "Notes saved successfully.")
     
     def _on_edit_project(self) -> None:
@@ -379,6 +382,9 @@ class ProjectsView(QWidget):
         self.viewmodel.update_project(
             project_id, name, estimated_seconds, service_id, deadline_ts, notes
         )
+        
+        # Reload project details to reflect changes
+        self._load_project_details(project_id)
     
     # Todo handlers
     
@@ -477,10 +483,12 @@ class ProjectsView(QWidget):
         self.project_name_label.setText(str(project["name"]))
         self.profile_name_label.setText(str(project.get("profile_name") or ""))
         
-        # Format estimated time
+        # Format estimated time as HH:MM
         if project.get("estimated_seconds") is not None:
-            hours = int(project["estimated_seconds"]) / 3600
-            self.estimated_time_label.setText(f"{hours:.1f} hours")
+            total_seconds = int(project["estimated_seconds"])
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            self.estimated_time_label.setText(f"{hours:02d}:{minutes:02d}")
         else:
             self.estimated_time_label.setText("Not set")
         

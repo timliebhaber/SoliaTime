@@ -113,6 +113,7 @@ class Repository:
     def list_entries(
         self,
         profile_id: Optional[int] = None,
+        project_id: Optional[int] = None,
         start_ts: Optional[int] = None,
         end_ts: Optional[int] = None,
     ) -> list[sqlite3.Row]:
@@ -121,6 +122,9 @@ class Repository:
         if profile_id is not None:
             clauses.append("e.profile_id = ?")
             params.append(profile_id)
+        if project_id is not None:
+            clauses.append("e.project_id = ?")
+            params.append(project_id)
         if start_ts is not None:
             clauses.append("e.start_ts >= ?")
             params.append(start_ts)

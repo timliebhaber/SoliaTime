@@ -141,6 +141,9 @@ class TimerViewModel(QObject):
         self._selected_profile_id = profile_id
         self._selected_project_id = None  # Clear project selection
         self._refresh_projects()
+        # Update progress and entries to reflect profile's time tracking
+        self._update_progress()
+        self._refresh_entries()
     
     def select_project(self, project_id: Optional[int]) -> None:
         """Select a project for the timer.
@@ -149,6 +152,9 @@ class TimerViewModel(QObject):
             project_id: Project ID to select, or None
         """
         self._selected_project_id = project_id
+        # Update progress and entries to reflect project's time tracking
+        self._update_progress()
+        self._refresh_entries()
     
     def update_entry_note_tags(self, entry_id: int, note: str, tags: str) -> None:
         """Update an entry's note and tags.
@@ -200,9 +206,17 @@ class TimerViewModel(QObject):
     
     def _refresh_entries(self) -> None:
         """Refresh entries list from database."""
-        profile_id = self.state.current_profile_id
-        rows = self.repo.list_entries(profile_id=profile_id)
+        # Use selected profile and project for filtering, fall back to current profile
+        profile_id = self._selected_profile_id or self.state.current_profile_id
+        project_id = self._selected_project_id
+        
+        print(f"DEBUG: _refresh_entries - profile_id: {profile_id}, project_id: {project_id}")
+        
+        rows = self.repo.list_entries(profile_id=profile_id, project_id=project_id)
         self._entries = [dict(row) for row in rows]
+        
+        print(f"DEBUG: Found {len(self._entries)} entries")
+        
         self.entries_changed.emit(self._entries)
         self._update_progress()
     
@@ -223,23 +237,40 @@ class TimerViewModel(QObject):
     
     def _update_progress(self) -> None:
         """Update progress calculation."""
-        profile_id = self.state.current_profile_id
-        elapsed = self._compute_elapsed_total_seconds(profile_id)
+        profile_id = self._selected_profile_id or self.state.current_profile_id
+        project_id = self._selected_project_id
         
-        target: Optional[int] = None
-        if profile_id is not None:
-            prof = self.repo.get_profile(profile_id)
-            if prof and prof["target_seconds"] is not None:
-                target = int(prof["target_seconds"])
-        
-        self._target_seconds = target
-        self.progress_updated.emit(elapsed, target)
+        # If a project is selected, track project time
+        if project_id is not None:
+            elapsed = self._compute_elapsed_total_seconds(profile_id, project_id)
+            
+            # Get project's estimated time as target
+            target: Optional[int] = None
+            proj = self.repo.get_project(project_id)
+            if proj and proj.get("estimated_seconds") is not None:
+                target = int(proj["estimated_seconds"])
+            
+            self._target_seconds = target
+            self.progress_updated.emit(elapsed, target)
+        else:
+            # Otherwise, track profile time as before
+            elapsed = self._compute_elapsed_total_seconds(profile_id, None)
+            
+            target: Optional[int] = None
+            if profile_id is not None:
+                prof = self.repo.get_profile(profile_id)
+                if prof and prof["target_seconds"] is not None:
+                    target = int(prof["target_seconds"])
+            
+            self._target_seconds = target
+            self.progress_updated.emit(elapsed, target)
     
-    def _compute_elapsed_total_seconds(self, profile_id: Optional[int]) -> int:
-        """Compute total elapsed seconds for a profile today.
+    def _compute_elapsed_total_seconds(self, profile_id: Optional[int], project_id: Optional[int] = None) -> int:
+        """Compute total elapsed seconds for a profile or project today.
         
         Args:
             profile_id: Profile ID
+            project_id: Optional project ID to filter by
             
         Returns:
             Total elapsed seconds
@@ -249,7 +280,7 @@ class TimerViewModel(QObject):
         
         now = int(time.time())
         total = 0
-        rows = self.repo.list_entries(profile_id=profile_id)
+        rows = self.repo.list_entries(profile_id=profile_id, project_id=project_id)
         
         for r in rows:
             start_ts = int(r["start_ts"]) if r["start_ts"] is not None else None
