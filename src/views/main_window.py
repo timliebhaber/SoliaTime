@@ -84,7 +84,7 @@ class MainWindow(QMainWindow):
         self.services_vm = services_vm
         
         # Setup window
-        self.setWindowTitle("Solia Time Tracking")
+        self.setWindowTitle("SoliaTime")
         self._set_window_icon()
         
         # Build UI
@@ -380,19 +380,67 @@ class MainWindow(QMainWindow):
     
     def _export_csv(self) -> None:
         """Export data to CSV."""
+        # Generate filename based on selected profile and project
+        profile_id = self.timer_vm.selected_profile_id
+        project_id = self.timer_vm.selected_project_id
+        
+        filename_parts = ["SoliaTime Export"]
+        
+        # Add profile name
+        if profile_id is not None:
+            profile = self.state.repository.get_profile(profile_id)
+            if profile:
+                filename_parts.append(profile["name"])
+        else:
+            filename_parts.append("All Profiles")
+        
+        # Add project name
+        if project_id is not None:
+            project = self.state.repository.get_project(project_id)
+            if project:
+                filename_parts.append(project["name"])
+        else:
+            filename_parts.append("All Projects")
+        
+        default_filename = " - ".join(filename_parts) + ".csv"
+        
         path, _ = QFileDialog.getSaveFileName(
-            self, "Export CSV", "SoliaTime - Export.csv", "CSV Files (*.csv)"
+            self, "Export CSV", default_filename, "CSV Files (*.csv)"
         )
         if path:
-            export_csv(self.state.repository, Path(path), profile_id=self.state.current_profile_id)
+            export_csv(self.state.repository, Path(path), profile_id=profile_id, project_id=project_id)
 
     def _export_json(self) -> None:
         """Export data to JSON."""
+        # Generate filename based on selected profile and project
+        profile_id = self.timer_vm.selected_profile_id
+        project_id = self.timer_vm.selected_project_id
+        
+        filename_parts = ["SoliaTime Export"]
+        
+        # Add profile name
+        if profile_id is not None:
+            profile = self.state.repository.get_profile(profile_id)
+            if profile:
+                filename_parts.append(profile["name"])
+        else:
+            filename_parts.append("All Profiles")
+        
+        # Add project name
+        if project_id is not None:
+            project = self.state.repository.get_project(project_id)
+            if project:
+                filename_parts.append(project["name"])
+        else:
+            filename_parts.append("All Projects")
+        
+        default_filename = " - ".join(filename_parts) + ".json"
+        
         path, _ = QFileDialog.getSaveFileName(
-            self, "Export JSON", "SoliaTime - Export.json", "JSON Files (*.json)"
+            self, "Export JSON", default_filename, "JSON Files (*.json)"
         )
         if path:
-            export_json(self.state.repository, Path(path), profile_id=self.state.current_profile_id)
+            export_json(self.state.repository, Path(path), profile_id=profile_id, project_id=project_id)
 
     # Shortcuts
     

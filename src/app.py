@@ -29,7 +29,7 @@ def main() -> int:
     ensure_app_dirs()
 
     app = QApplication(sys.argv)
-    app.setApplicationName("Solia Time Tracking")
+    app.setApplicationName("SoliaTime")
     app.setOrganizationName("Solia")
 
     # Set application icon

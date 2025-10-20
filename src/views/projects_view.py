@@ -322,9 +322,9 @@ class ProjectsView(QWidget):
         self.viewmodel.update_project(
             project_id,
             str(project["name"]),
-            int(project["estimated_seconds"]) if project.get("estimated_seconds") else None,
-            int(project["service_id"]) if project.get("service_id") else None,
-            int(project["deadline_ts"]) if project.get("deadline_ts") else None,
+            int(project["estimated_seconds"]) if project["estimated_seconds"] else None,
+            int(project["service_id"]) if project["service_id"] else None,
+            int(project["deadline_ts"]) if project["deadline_ts"] else None,
             notes
         )
         
@@ -345,12 +345,12 @@ class ProjectsView(QWidget):
         
         # Convert timestamp to datetime
         deadline = None
-        if project.get("deadline_ts"):
+        if project["deadline_ts"]:
             deadline = datetime.fromtimestamp(int(project["deadline_ts"]))
         
         # Convert seconds to hours
         estimated_hours = 0
-        if project.get("estimated_seconds"):
+        if project["estimated_seconds"]:
             estimated_hours = int(project["estimated_seconds"]) / 3600
         
         dlg = ProjectDialog(
@@ -361,7 +361,7 @@ class ProjectsView(QWidget):
             name=str(project["name"]),
             profile_id=int(project["profile_id"]),
             estimated_hours=estimated_hours,
-            service_id=int(project["service_id"]) if project.get("service_id") else None,
+            service_id=int(project["service_id"]) if project["service_id"] else None,
             deadline=deadline,
             notes=str(project["notes"] or ""),
         )
@@ -450,7 +450,7 @@ class ProjectsView(QWidget):
         """
         self.projects_list.clear()
         for proj in projects:
-            display_text = f"{proj['name']} ({proj['profile_name']})"
+            display_text = f"{proj['name']}"
             it = QListWidgetItem(display_text)
             it.setData(Qt.UserRole, int(proj["id"]))
             self.projects_list.addItem(it)
@@ -481,10 +481,11 @@ class ProjectsView(QWidget):
         
         # Populate fields
         self.project_name_label.setText(str(project["name"]))
-        self.profile_name_label.setText(str(project.get("profile_name") or ""))
+        profile_name = project["profile_name"] if "profile_name" in project.keys() else None
+        self.profile_name_label.setText(str(profile_name or ""))
         
         # Format estimated time as HH:MM
-        if project.get("estimated_seconds") is not None:
+        if project["estimated_seconds"] is not None:
             total_seconds = int(project["estimated_seconds"])
             hours = total_seconds // 3600
             minutes = (total_seconds % 3600) // 60
@@ -493,14 +494,14 @@ class ProjectsView(QWidget):
             self.estimated_time_label.setText("Not set")
         
         # Service
-        service_name = project.get("service_name")
+        service_name = project["service_name"] if "service_name" in project.keys() else None
         if service_name is not None:
             self.service_label.setText(str(service_name))
         else:
             self.service_label.setText("None")
         
         # Deadline
-        deadline_ts = project.get("deadline_ts")
+        deadline_ts = project["deadline_ts"] if "deadline_ts" in project.keys() else None
         if deadline_ts is not None:
             dt = datetime.fromtimestamp(int(deadline_ts))
             self.deadline_label.setText(dt.strftime("%Y-%m-%d"))
@@ -508,7 +509,7 @@ class ProjectsView(QWidget):
             self.deadline_label.setText("No deadline")
         
         # Notes
-        notes = project.get("notes")
+        notes = project["notes"] if "notes" in project.keys() else None
         self.notes_display.setPlainText(notes if notes is not None else "")
         
         # Load todos

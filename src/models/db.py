@@ -138,5 +138,10 @@ def _init_db(conn: sqlite3.Connection) -> None:
                 # Column may already exist
                 pass
             conn.execute("PRAGMA user_version = 10;")
+        elif version == 10:
+            # Migrate to v11: clear all profile time estimates (target_seconds)
+            # Time estimates are now only on projects and services
+            conn.execute("UPDATE profiles SET target_seconds = NULL;")
+            conn.execute("PRAGMA user_version = 11;")
 
 

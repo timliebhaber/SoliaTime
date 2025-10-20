@@ -124,3 +124,20 @@ def format_time_hhmm(seconds: int) -> str:
     m = (seconds % 3600) // 60
     return f"{h:02d}:{m:02d}"
 
+
+def parse_timestamp(text: str) -> Optional[int]:
+    """Parse timestamp string to Unix timestamp.
+    
+    Args:
+        text: Timestamp string in format "YYYY-MM-DD HH:MM:SS"
+        
+    Returns:
+        Unix timestamp in seconds, or None if invalid
+    """
+    text = text.strip()
+    if not text or text == "—":
+        return None
+    try:
+        return int(time.mktime(time.strptime(text, "%Y-%m-%d %H:%M:%S")))
+    except Exception:
+        return None

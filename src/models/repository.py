@@ -148,6 +148,34 @@ class Repository:
                 (note, tags_csv, entry_id),
             )
 
+    def update_entry_timestamps(self, entry_id: int, start_ts: int, end_ts: int | None) -> None:
+        """Update entry start and end timestamps.
+        
+        Args:
+            entry_id: Entry ID
+            start_ts: New start timestamp
+            end_ts: New end timestamp (can be None for active entries)
+        """
+        with self.conn:
+            self.conn.execute(
+                "UPDATE time_entries SET start_ts = ?, end_ts = ? WHERE id = ?",
+                (start_ts, end_ts, entry_id),
+            )
+
+    def update_entry_profile_project(self, entry_id: int, profile_id: int, project_id: int | None) -> None:
+        """Update entry profile and project.
+        
+        Args:
+            entry_id: Entry ID
+            profile_id: New profile ID
+            project_id: New project ID (can be None)
+        """
+        with self.conn:
+            self.conn.execute(
+                "UPDATE time_entries SET profile_id = ?, project_id = ? WHERE id = ?",
+                (profile_id, project_id, entry_id),
+            )
+
     def delete_entry(self, entry_id: int) -> None:
         with self.conn:
             self.conn.execute("DELETE FROM time_entries WHERE id = ?", (entry_id,))

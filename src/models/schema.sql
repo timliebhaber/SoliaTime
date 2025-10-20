@@ -1,7 +1,7 @@
 PRAGMA foreign_keys = ON;
 
 -- schema version
-PRAGMA user_version = 10;
+PRAGMA user_version = 11;
 
 CREATE TABLE IF NOT EXISTS profiles (
   id INTEGER PRIMARY KEY,

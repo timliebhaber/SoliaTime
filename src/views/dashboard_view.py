@@ -41,7 +41,7 @@ class DashboardView(QWidget):
         layout.setAlignment(Qt.AlignCenter)
         
         # Title
-        title_label = QLabel("Solia Time Tracking")
+        title_label = QLabel("SoliaTime")
         title_font = title_label.font()
         title_font.setPointSize(24)
         title_font.setBold(True)

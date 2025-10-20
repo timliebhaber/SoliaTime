@@ -10,19 +10,20 @@ from typing import Optional
 from src.models.repository import Repository
 
 
-def export_csv(repo: Repository, path: Path, profile_id: Optional[int] = None) -> None:
+def export_csv(repo: Repository, path: Path, profile_id: Optional[int] = None, project_id: Optional[int] = None) -> None:
     """Export time entries to CSV file.
     
     Args:
         repo: Repository instance
         path: Output file path
         profile_id: Optional profile filter
+        project_id: Optional project filter
     """
-    rows = repo.list_entries(profile_id=profile_id)
+    rows = repo.list_entries(profile_id=profile_id, project_id=project_id)
     with path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         # CSV header with formatted fields
-        writer.writerow(["profile", "start", "end", "duration", "note", "tags"]) 
+        writer.writerow(["profile", "project", "start", "end", "duration", "note", "tags"]) 
         now = int(time.time())
         for r in rows:
             start = int(r["start_ts"]) if r["start_ts"] is not None else None
@@ -51,6 +52,7 @@ def export_csv(repo: Repository, path: Path, profile_id: Optional[int] = None) -
             
             writer.writerow([
                 r["profile_name"],
+                r["project_name"] or "—",
                 start_str,
                 end_str,
                 duration_str,
@@ -59,15 +61,16 @@ def export_csv(repo: Repository, path: Path, profile_id: Optional[int] = None) -
             ])
 
 
-def export_json(repo: Repository, path: Path, profile_id: Optional[int] = None) -> None:
+def export_json(repo: Repository, path: Path, profile_id: Optional[int] = None, project_id: Optional[int] = None) -> None:
     """Export time entries to JSON file.
     
     Args:
         repo: Repository instance
         path: Output file path
         profile_id: Optional profile filter
+        project_id: Optional project filter
     """
-    rows = repo.list_entries(profile_id=profile_id)
+    rows = repo.list_entries(profile_id=profile_id, project_id=project_id)
     payload = []
     now = int(time.time())
     for r in rows:
@@ -78,6 +81,8 @@ def export_json(repo: Repository, path: Path, profile_id: Optional[int] = None) 
             "id": int(r["id"]),
             "profile_id": int(r["profile_id"]),
             "profile": r["profile_name"],
+            "project_id": int(r["project_id"]) if r.get("project_id") is not None else None,
+            "project": r["project_name"] or None,
             "start_ts": start,
             "end_ts": end,
             "duration_sec": duration,

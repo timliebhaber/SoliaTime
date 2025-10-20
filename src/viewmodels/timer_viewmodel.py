@@ -166,6 +166,49 @@ class TimerViewModel(QObject):
         """
         self.repo.update_entry_note_tags(entry_id, note, tags)
         self.state.notify_entries_updated()
+
+    def update_entry_timestamps(self, entry_id: int, start_ts: int, end_ts: Optional[int]) -> None:
+        """Update an entry's timestamps.
+        
+        Args:
+            entry_id: Entry ID
+            start_ts: New start timestamp
+            end_ts: New end timestamp (can be None)
+        """
+        self.repo.update_entry_timestamps(entry_id, start_ts, end_ts)
+        self.state.notify_entries_updated()
+
+    def update_entry_profile_project(self, entry_id: int, profile_name: str, project_name: str) -> None:
+        """Update an entry's profile and project by names.
+        
+        Args:
+            entry_id: Entry ID
+            profile_name: Profile name
+            project_name: Project name (or "—" for no project)
+        """
+        # Find profile by name
+        profile = None
+        for p in self._profiles:
+            if p["name"] == profile_name:
+                profile = p
+                break
+        
+        if not profile:
+            return  # Invalid profile name
+        
+        profile_id = int(profile["id"])
+        
+        # Find project by name (only in selected profile's projects)
+        project_id = None
+        if project_name and project_name != "—":
+            projects = self.repo.list_projects(profile_id=profile_id)
+            for proj in projects:
+                if proj["name"] == project_name:
+                    project_id = int(proj["id"])
+                    break
+        
+        self.repo.update_entry_profile_project(entry_id, profile_id, project_id)
+        self.state.notify_entries_updated()
     
     def delete_entries(self, entry_ids: List[int]) -> None:
         """Delete multiple entries.
@@ -206,8 +249,9 @@ class TimerViewModel(QObject):
     
     def _refresh_entries(self) -> None:
         """Refresh entries list from database."""
-        # Use selected profile and project for filtering, fall back to current profile
-        profile_id = self._selected_profile_id or self.state.current_profile_id
+        # Use selected profile and project for filtering
+        # If _selected_profile_id is None, show all entries from all profiles
+        profile_id = self._selected_profile_id
         project_id = self._selected_project_id
         
         print(f"DEBUG: _refresh_entries - profile_id: {profile_id}, project_id: {project_id}")
@@ -237,8 +281,14 @@ class TimerViewModel(QObject):
     
     def _update_progress(self) -> None:
         """Update progress calculation."""
-        profile_id = self._selected_profile_id or self.state.current_profile_id
+        profile_id = self._selected_profile_id
         project_id = self._selected_project_id
+        
+        # If no profile selected (All profiles), don't show progress
+        if profile_id is None:
+            self._target_seconds = None
+            self.progress_updated.emit(0, None)
+            return
         
         # If a project is selected, track project time
         if project_id is not None:
@@ -247,20 +297,17 @@ class TimerViewModel(QObject):
             # Get project's estimated time as target
             target: Optional[int] = None
             proj = self.repo.get_project(project_id)
-            if proj and proj.get("estimated_seconds") is not None:
+            if proj and proj["estimated_seconds"] is not None:
                 target = int(proj["estimated_seconds"])
             
             self._target_seconds = target
             self.progress_updated.emit(elapsed, target)
         else:
-            # Otherwise, track profile time as before
+            # Otherwise, track profile time without a target
             elapsed = self._compute_elapsed_total_seconds(profile_id, None)
             
+            # Profiles no longer have time targets - only projects do
             target: Optional[int] = None
-            if profile_id is not None:
-                prof = self.repo.get_profile(profile_id)
-                if prof and prof["target_seconds"] is not None:
-                    target = int(prof["target_seconds"])
             
             self._target_seconds = target
             self.progress_updated.emit(elapsed, target)

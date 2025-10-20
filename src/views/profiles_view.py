@@ -8,6 +8,7 @@ from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QDialog,
     QFormLayout,
+    QGroupBox,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -19,6 +20,7 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
+    QSplitter,
     QVBoxLayout,
     QWidget,
 )
@@ -50,16 +52,23 @@ class ProfilesView(QWidget):
 
     def _build_ui(self) -> None:
         """Build the UI components."""
-        # Main horizontal layout - profiles list on left, details on right
+        # Main horizontal layout with splitter for resizable panels
         main_layout = QHBoxLayout(self)
         
         # Left side - profiles list
         left_panel = self._build_list_panel()
-        main_layout.addWidget(left_panel, 1)
         
         # Right side - profile details
         right_panel = self._build_details_panel()
-        main_layout.addWidget(right_panel, 2)
+        
+        # Use splitter for resizable columns
+        splitter = QSplitter(Qt.Horizontal)
+        splitter.addWidget(left_panel)
+        splitter.addWidget(right_panel)
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 2)
+        
+        main_layout.addWidget(splitter)
 
     def _build_list_panel(self) -> QWidget:
         """Build the profiles list panel (left side)."""
@@ -98,9 +107,12 @@ class ProfilesView(QWidget):
         scroll.setWidgetResizable(True)
         
         widget = QWidget()
-        form = QFormLayout(widget)
+        layout = QVBoxLayout(widget)
         
-        # Profile fields (removed daily target)
+        # Profile info group
+        info_group = QGroupBox("Profile Information")
+        info_form = QFormLayout(info_group)
+        
         self.name_edit = QLineEdit()
         self.contact_edit = QLineEdit()
         self.email_edit = QLineEdit()
@@ -110,47 +122,28 @@ class ProfilesView(QWidget):
         self.notes_edit.setTabChangesFocus(True)
         self.notes_edit.setMaximumHeight(100)
         
-        form.addRow("Name", self.name_edit)
-        form.addRow("Contact Person", self.contact_edit)
-        form.addRow("Email", self.email_edit)
-        form.addRow("Phone", self.phone_edit)
-        form.addRow("Notes", self.notes_edit)
+        info_form.addRow("Name:", self.name_edit)
+        info_form.addRow("Contact Person:", self.contact_edit)
+        info_form.addRow("Email:", self.email_edit)
+        info_form.addRow("Phone:", self.phone_edit)
+        info_form.addRow("Notes:", self.notes_edit)
         
         # Save button
         self.save_btn = QPushButton("Save")
-        form.addRow(self.save_btn)
+        info_form.addRow(self.save_btn)
         
-        # Projects section
-        form.addRow(QLabel("<h3>Projects</h3>"))
+        layout.addWidget(info_group)
+        
+        # Projects group
+        projects_group = QGroupBox("Projects")
+        projects_layout = QVBoxLayout(projects_group)
+        
         self.projects_list = QListWidget()
-        self.projects_list.setMaximumHeight(150)
-        form.addRow(self.projects_list)
+        self.projects_list.setMaximumHeight(200)
+        projects_layout.addWidget(self.projects_list)
         
-        # Todos section
-        form.addRow(QLabel("<h3>To-Dos</h3>"))
-        todos_layout = QVBoxLayout()
-        
-        self.todo_list = QListWidget()
-        self.todo_list.itemChanged.connect(self._on_todo_toggled)
-        self.todo_list.setMaximumHeight(150)
-        
-        add_row = QHBoxLayout()
-        self.todo_input = QLineEdit()
-        self.todo_input.setPlaceholderText("New to-do…")
-        self.todo_add_btn = QPushButton("Add")
-        
-        add_row.addWidget(self.todo_input, 1)
-        add_row.addWidget(self.todo_add_btn)
-        
-        # Delete button under Add button
-        self.todo_del_btn = QPushButton("Delete")
-        self.todo_del_btn.setMaximumWidth(self.todo_add_btn.sizeHint().width())
-        
-        todos_layout.addWidget(self.todo_list)
-        todos_layout.addLayout(add_row)
-        todos_layout.addWidget(self.todo_del_btn)
-        
-        form.addRow(todos_layout)
+        layout.addWidget(projects_group)
+        layout.addStretch()
         
         scroll.setWidget(widget)
         return scroll
@@ -166,12 +159,9 @@ class ProfilesView(QWidget):
         # Details panel UI → ViewModel
         self.save_btn.clicked.connect(self._on_save_profile)
         self.projects_list.itemDoubleClicked.connect(self._on_project_double_clicked)
-        self.todo_add_btn.clicked.connect(self._on_add_todo)
-        self.todo_del_btn.clicked.connect(self._on_delete_todos)
         
         # ViewModel → UI
         self.viewmodel.profiles_changed.connect(self._update_profiles_list)
-        self.viewmodel.todos_changed.connect(self._update_todos_list)
         self.viewmodel.projects_changed.connect(self._update_projects_list)
         self.viewmodel.profile_selected.connect(self._load_profile_details)
         
@@ -222,9 +212,8 @@ class ProfilesView(QWidget):
         self.phone_edit.setText(prof["phone"] or "" if prof else "")
         self.notes_edit.setPlainText((prof["notes"] or "") if prof else "")
         
-        # Load projects and todos
+        # Load projects
         self.viewmodel.load_projects(profile_id)
-        self.viewmodel.load_todos(profile_id)
     
     # UI event handlers - List panel
     
@@ -341,46 +330,6 @@ class ProfilesView(QWidget):
         if project_id is not None:
             self.viewmodel.navigate_to_project(int(project_id))
     
-    def _on_add_todo(self) -> None:
-        """Handle add todo button."""
-        profile_id = self.viewmodel.current_profile_id
-        if profile_id is None:
-            return
-        
-        text = self.todo_input.text().strip()
-        if not text:
-            return
-        
-        self.viewmodel.add_todo(profile_id, text)
-        self.todo_input.clear()
-    
-    def _on_delete_todos(self) -> None:
-        """Handle delete todos button."""
-        profile_id = self.viewmodel.current_profile_id
-        if profile_id is None:
-            return
-        
-        items = self.todo_list.selectedItems()
-        if not items:
-            return
-        
-        for item in items:
-            todo_id = int(item.data(Qt.UserRole))
-            self.viewmodel.delete_todo(todo_id, profile_id)
-    
-    def _on_todo_toggled(self, item: QListWidgetItem) -> None:
-        """Handle todo checkbox toggle."""
-        profile_id = self.viewmodel.current_profile_id
-        if profile_id is None:
-            return
-        
-        todo_id = item.data(Qt.UserRole)
-        if todo_id is None:
-            return
-        
-        completed = item.checkState() == Qt.Checked
-        self.viewmodel.toggle_todo_completed(int(todo_id), completed, profile_id)
-    
     # ViewModel update handlers
     
     def _update_profiles_list(self, profiles: list) -> None:
@@ -407,31 +356,6 @@ class ProfilesView(QWidget):
             item = QListWidgetItem(str(proj["name"]))
             item.setData(Qt.UserRole, int(proj["id"]))
             self.projects_list.addItem(item)
-    
-    def _update_todos_list(self, todos: list) -> None:
-        """Update todos list with new data.
-        
-        Args:
-            todos: List of todo dicts
-        """
-        self.todo_list.blockSignals(True)
-        self.todo_list.clear()
-        
-        for todo in todos:
-            item = QListWidgetItem(str(todo["text"]))
-            item.setFlags(item.flags() | Qt.ItemIsUserCheckable | Qt.ItemIsEditable)
-            item.setCheckState(Qt.Checked if int(todo["completed"]) else Qt.Unchecked)
-            item.setData(Qt.UserRole, int(todo["id"]))
-            
-            # Strike-through if completed
-            if int(todo["completed"]):
-                font = item.font()
-                font.setStrikeOut(True)
-                item.setFont(font)
-            
-            self.todo_list.addItem(item)
-        
-        self.todo_list.blockSignals(False)
     
     # Helper methods
     

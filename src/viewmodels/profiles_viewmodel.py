@@ -84,7 +84,6 @@ class ProfilesViewModel(QObject):
     def create_profile(
         self,
         name: str,
-        target_seconds: Optional[int] = None,
         contact_person: Optional[str] = None,
         email: Optional[str] = None,
         phone: Optional[str] = None,
@@ -93,7 +92,6 @@ class ProfilesViewModel(QObject):
         
         Args:
             name: Profile name
-            target_seconds: Daily target in seconds
             contact_person: Contact person name
             email: Contact email
             phone: Contact phone
@@ -102,7 +100,7 @@ class ProfilesViewModel(QObject):
             ID of created profile
         """
         profile_id = self.repo.create_profile(
-            name, None, target_seconds, None, contact_person, email, phone
+            name, None, None, None, contact_person, email, phone
         )
         self.state.notify_profiles_updated()
         self.select_profile(profile_id)
@@ -112,7 +110,6 @@ class ProfilesViewModel(QObject):
         self,
         profile_id: int,
         name: Optional[str] = None,
-        target_seconds: Optional[int] = None,
         contact_person: Optional[str] = None,
         email: Optional[str] = None,
         phone: Optional[str] = None,
@@ -123,7 +120,6 @@ class ProfilesViewModel(QObject):
         Args:
             profile_id: Profile ID
             name: New name (if provided)
-            target_seconds: New target (if provided)
             contact_person: New contact person (if provided)
             email: New email (if provided)
             phone: New phone (if provided)
@@ -136,10 +132,6 @@ class ProfilesViewModel(QObject):
         # Update name
         if name is not None and name != prof["name"]:
             self.repo.rename_profile(profile_id, name)
-        
-        # Update target
-        if target_seconds is not None or target_seconds != prof.get("target_seconds"):
-            self.repo.set_profile_target_seconds(profile_id, target_seconds)
         
         # Update contacts
         if any(x is not None for x in [contact_person, email, phone]):
@@ -197,15 +189,14 @@ class ProfilesViewModel(QObject):
         if prof is None:
             raise ValueError("Source profile not found")
         
-        # Create new profile with copied fields
-        target_seconds = int(prof["target_seconds"]) if prof["target_seconds"] is not None else None
+        # Create new profile with copied fields (no target_seconds - profiles no longer have time targets)
         contact = prof["contact_person"] or None
         email = prof["email"] or None
         phone = prof["phone"] or None
         notes = prof["notes"] or None
         
         new_id = self.repo.create_profile(
-            new_name, None, target_seconds, None, contact, email, phone, notes
+            new_name, None, None, None, contact, email, phone, notes
         )
         
         # Copy todos
