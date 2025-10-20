@@ -35,6 +35,8 @@ class AppSettings:
     last_profile_id: int | None = None
     geometry: bytes | None = None  # Qt saves as bytes; serialize as hex
     window_state: bytes | None = None
+    timer_last_profile_id: int | None = None  # Last selected profile in timer view (None = "All profiles")
+    timer_last_project_id: int | None = None  # Last selected project in timer view (None = "All projects")
 
     def to_json(self) -> dict[str, Any]:
         """Convert settings to JSON-serializable dict.
@@ -46,6 +48,8 @@ class AppSettings:
             "last_profile_id": self.last_profile_id,
             "geometry": self.geometry.hex() if isinstance(self.geometry, (bytes, bytearray)) else None,
             "window_state": self.window_state.hex() if isinstance(self.window_state, (bytes, bytearray)) else None,
+            "timer_last_profile_id": self.timer_last_profile_id,
+            "timer_last_project_id": self.timer_last_project_id,
         }
 
     @staticmethod
@@ -66,6 +70,8 @@ class AppSettings:
         state = obj.get("window_state")
         s.geometry = bytes.fromhex(geom) if isinstance(geom, str) else None
         s.window_state = bytes.fromhex(state) if isinstance(state, str) else None
+        s.timer_last_profile_id = obj.get("timer_last_profile_id")
+        s.timer_last_project_id = obj.get("timer_last_project_id")
         return s
 
 

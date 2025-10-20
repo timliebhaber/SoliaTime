@@ -56,12 +56,44 @@ class TimerView(QWidget):
         super().showEvent(event)
         # Refresh profiles and projects when view is shown
         self.viewmodel._refresh_profiles()
+        
+        # Restore last selected profile and project from settings
+        settings = self.viewmodel.state.settings
+        saved_profile_id = settings.timer_last_profile_id
+        saved_project_id = settings.timer_last_project_id
+        
+        # Find and select the saved profile (or default to "All profiles")
+        profile_index = 0  # Default to "All profiles"
+        if saved_profile_id is not None:
+            for i in range(self.profile_combo.count()):
+                if self.profile_combo.itemData(i) == saved_profile_id:
+                    profile_index = i
+                    break
+        
+        # Block signals to prevent saving while we're loading
+        self.profile_combo.blockSignals(True)
+        self.project_combo.blockSignals(True)
+        
+        self.profile_combo.setCurrentIndex(profile_index)
+        self.viewmodel.select_profile(saved_profile_id)
+        
+        # Refresh projects for the selected profile
         self.viewmodel._refresh_projects()
         
-        # Auto-select "All profiles" (index 0) when view is opened
-        self.profile_combo.setCurrentIndex(0)
-        # Explicitly refresh entries to show all profile entries
-        self.viewmodel.select_profile(None)
+        # Find and select the saved project (or default to "All projects")
+        project_index = 0  # Default to "All projects"
+        if saved_project_id is not None and saved_profile_id is not None:
+            for i in range(self.project_combo.count()):
+                if self.project_combo.itemData(i) == saved_project_id:
+                    project_index = i
+                    break
+        
+        self.project_combo.setCurrentIndex(project_index)
+        self.viewmodel.select_project(saved_project_id if saved_profile_id is not None else None)
+        
+        # Re-enable signals
+        self.profile_combo.blockSignals(False)
+        self.project_combo.blockSignals(False)
 
     def _build_ui(self) -> None:
         """Build the UI components."""
@@ -147,12 +179,23 @@ class TimerView(QWidget):
         self.viewmodel.select_profile(profile_id)
         # Enable/disable project combo based on selection
         self.project_combo.setEnabled(profile_id is not None)
+        
+        # Save the selection to settings (and reset project when profile changes)
+        settings = self.viewmodel.state.settings
+        settings.timer_last_profile_id = profile_id
+        settings.timer_last_project_id = None  # Reset project when profile changes
+        self.viewmodel.state.update_settings(settings)
     
     def _on_project_selected(self, index: int) -> None:
         """Handle project selection change."""
         project_id = self.project_combo.currentData()
         print(f"DEBUG: Project selected - index: {index}, project_id: {project_id}")
         self.viewmodel.select_project(project_id)
+        
+        # Save the selection to settings
+        settings = self.viewmodel.state.settings
+        settings.timer_last_project_id = project_id
+        self.viewmodel.state.update_settings(settings)
     
     def _on_toggle_clicked(self) -> None:
         """Handle toggle button click."""
