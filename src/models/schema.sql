@@ -1,7 +1,7 @@
 PRAGMA foreign_keys = ON;
 
 -- schema version
-PRAGMA user_version = 11;
+PRAGMA user_version = 12;
 
 CREATE TABLE IF NOT EXISTS profiles (
   id INTEGER PRIMARY KEY,
@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   contact_person TEXT,
   email TEXT,
   phone TEXT,
+  business_address TEXT,
   notes TEXT
 );
 

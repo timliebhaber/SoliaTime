@@ -117,6 +117,10 @@ class ProfilesView(QWidget):
         self.contact_edit = QLineEdit()
         self.email_edit = QLineEdit()
         self.phone_edit = QLineEdit()
+        self.business_address_edit = QPlainTextEdit()
+        self.business_address_edit.setPlaceholderText("Enter business address...")
+        self.business_address_edit.setTabChangesFocus(True)
+        self.business_address_edit.setMaximumHeight(100)  # 4 lines high
         self.notes_edit = QPlainTextEdit()
         self.notes_edit.setPlaceholderText("Write notes about this profile…")
         self.notes_edit.setTabChangesFocus(True)
@@ -126,6 +130,7 @@ class ProfilesView(QWidget):
         info_form.addRow("Contact Person:", self.contact_edit)
         info_form.addRow("Email:", self.email_edit)
         info_form.addRow("Phone:", self.phone_edit)
+        info_form.addRow("Business Address:", self.business_address_edit)
         info_form.addRow("Notes:", self.notes_edit)
         
         # Save button
@@ -197,6 +202,7 @@ class ProfilesView(QWidget):
             self.contact_edit.clear()
             self.email_edit.clear()
             self.phone_edit.clear()
+            self.business_address_edit.clear()
             self.notes_edit.clear()
             self.projects_list.clear()
             return
@@ -210,6 +216,7 @@ class ProfilesView(QWidget):
         self.contact_edit.setText(prof["contact_person"] or "" if prof else "")
         self.email_edit.setText(prof["email"] or "" if prof else "")
         self.phone_edit.setText(prof["phone"] or "" if prof else "")
+        self.business_address_edit.setPlainText((prof["business_address"] or "") if prof else "")
         self.notes_edit.setPlainText((prof["notes"] or "") if prof else "")
         
         # Load projects
@@ -228,8 +235,8 @@ class ProfilesView(QWidget):
             return
         
         # No longer using target in profile dialog
-        contact, email, phone = dlg.get_contact_fields()
-        self.viewmodel.create_profile(name, None, contact, email, phone)
+        contact, email, phone, business_address = dlg.get_contact_fields()
+        self.viewmodel.create_profile(name, contact, email, phone, business_address)
     
     def _on_delete_profile(self) -> None:
         """Handle delete profile button."""
@@ -314,10 +321,11 @@ class ProfilesView(QWidget):
         contact = self.contact_edit.text().strip() or None
         email = self.email_edit.text().strip() or None
         phone = self.phone_edit.text().strip() or None
+        business_address = self.business_address_edit.toPlainText().strip() or None
         notes = self.notes_edit.toPlainText().strip() or None
         
         self.viewmodel.update_profile(
-            profile_id, name, None, contact, email, phone, notes
+            profile_id, name, contact, email, phone, business_address, notes
         )
     
     def _on_project_double_clicked(self, item: QListWidgetItem) -> None:

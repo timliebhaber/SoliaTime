@@ -354,8 +354,8 @@ class MainWindow(QMainWindow):
         if not name:
             return
         
-        contact, email, phone = dlg.get_contact_fields()
-        self.profiles_vm.create_profile(name, None, contact, email, phone)
+        contact, email, phone, business_address = dlg.get_contact_fields()
+        self.profiles_vm.create_profile(name, contact, email, phone, business_address)
 
     def _on_sidebar_edit_profile(self) -> None:
         """Handle edit profile from sidebar."""

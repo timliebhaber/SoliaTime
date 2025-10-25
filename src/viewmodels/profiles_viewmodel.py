@@ -87,6 +87,7 @@ class ProfilesViewModel(QObject):
         contact_person: Optional[str] = None,
         email: Optional[str] = None,
         phone: Optional[str] = None,
+        business_address: Optional[str] = None,
     ) -> int:
         """Create a new profile.
         
@@ -95,12 +96,13 @@ class ProfilesViewModel(QObject):
             contact_person: Contact person name
             email: Contact email
             phone: Contact phone
+            business_address: Business address
             
         Returns:
             ID of created profile
         """
         profile_id = self.repo.create_profile(
-            name, None, None, None, contact_person, email, phone
+            name, None, None, None, contact_person, email, phone, business_address
         )
         self.state.notify_profiles_updated()
         self.select_profile(profile_id)
@@ -113,6 +115,7 @@ class ProfilesViewModel(QObject):
         contact_person: Optional[str] = None,
         email: Optional[str] = None,
         phone: Optional[str] = None,
+        business_address: Optional[str] = None,
         notes: Optional[str] = None,
     ) -> None:
         """Update profile information.
@@ -123,6 +126,7 @@ class ProfilesViewModel(QObject):
             contact_person: New contact person (if provided)
             email: New email (if provided)
             phone: New phone (if provided)
+            business_address: New business address (if provided)
             notes: New notes (if provided)
         """
         prof = self.repo.get_profile(profile_id)
@@ -134,13 +138,14 @@ class ProfilesViewModel(QObject):
             self.repo.rename_profile(profile_id, name)
         
         # Update contacts
-        if any(x is not None for x in [contact_person, email, phone]):
+        if any(x is not None for x in [contact_person, email, phone, business_address]):
             self.repo.update_profile_contacts(
                 profile_id,
                 None,  # company is always None now
                 contact_person if contact_person is not None else prof.get("contact_person"),
                 email if email is not None else prof.get("email"),
                 phone if phone is not None else prof.get("phone"),
+                business_address if business_address is not None else prof.get("business_address"),
             )
         
         # Update notes
@@ -193,10 +198,11 @@ class ProfilesViewModel(QObject):
         contact = prof["contact_person"] or None
         email = prof["email"] or None
         phone = prof["phone"] or None
+        business_address = prof["business_address"] or None
         notes = prof["notes"] or None
         
         new_id = self.repo.create_profile(
-            new_name, None, None, None, contact, email, phone, notes
+            new_name, None, None, None, contact, email, phone, business_address, notes
         )
         
         # Copy todos

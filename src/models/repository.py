@@ -19,12 +19,13 @@ class Repository:
         contact_person: str | None = None,
         email: str | None = None,
         phone: str | None = None,
+        business_address: str | None = None,
         notes: str | None = None,
     ) -> int:
         with self.conn:
             cur = self.conn.execute(
-                "INSERT INTO profiles(name, color, archived, target_seconds, company, contact_person, email, phone, notes) VALUES(?, ?, 0, ?, ?, ?, ?, ?, ?)",
-                (name, color, target_seconds, company, contact_person, email, phone, notes),
+                "INSERT INTO profiles(name, color, archived, target_seconds, company, contact_person, email, phone, business_address, notes) VALUES(?, ?, 0, ?, ?, ?, ?, ?, ?, ?)",
+                (name, color, target_seconds, company, contact_person, email, phone, business_address, notes),
             )
             return cur.lastrowid
 
@@ -55,11 +56,12 @@ class Repository:
         contact_person: str | None,
         email: str | None,
         phone: str | None,
+        business_address: str | None = None,
     ) -> None:
         with self.conn:
             self.conn.execute(
-                "UPDATE profiles SET company = ?, contact_person = ?, email = ?, phone = ? WHERE id = ?",
-                (company, contact_person, email, phone, profile_id),
+                "UPDATE profiles SET company = ?, contact_person = ?, email = ?, phone = ?, business_address = ? WHERE id = ?",
+                (company, contact_person, email, phone, business_address, profile_id),
             )
 
     def set_profile_notes(self, profile_id: int, notes: str | None) -> None:

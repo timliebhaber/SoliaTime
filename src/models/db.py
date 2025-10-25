@@ -143,5 +143,13 @@ def _init_db(conn: sqlite3.Connection) -> None:
             # Time estimates are now only on projects and services
             conn.execute("UPDATE profiles SET target_seconds = NULL;")
             conn.execute("PRAGMA user_version = 11;")
+        elif version == 11:
+            # Migrate to v12: add business_address to profiles
+            try:
+                conn.execute("ALTER TABLE profiles ADD COLUMN business_address TEXT;")
+            except Exception:
+                # Column may already exist
+                pass
+            conn.execute("PRAGMA user_version = 12;")
 
 

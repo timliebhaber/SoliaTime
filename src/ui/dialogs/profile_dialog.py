@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QLabel,
     QLineEdit,
+    QPlainTextEdit,
     QVBoxLayout,
 )
 
@@ -21,6 +22,7 @@ class ProfileDialog(QDialog):
         contact_person: str | None = None,
         email: str | None = None,
         phone: str | None = None,
+        business_address: str | None = None,
     ) -> None:
         """Initialize profile dialog.
         
@@ -31,6 +33,7 @@ class ProfileDialog(QDialog):
             contact_person: Contact person name
             email: Contact email
             phone: Contact phone number
+            business_address: Business address
         """
         super().__init__(parent)
         self.setWindowTitle(title)
@@ -57,6 +60,14 @@ class ProfileDialog(QDialog):
         layout.addWidget(QLabel("Phone"))
         layout.addWidget(self.phone_edit)
         
+        # Business address field
+        self.business_address_edit = QPlainTextEdit(self)
+        self.business_address_edit.setPlainText(business_address or "")
+        self.business_address_edit.setPlaceholderText("Enter business address...")
+        self.business_address_edit.setMaximumHeight(100)  # 4 lines high
+        layout.addWidget(QLabel("Business Address"))
+        layout.addWidget(self.business_address_edit)
+        
         # Buttons
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self)
         buttons.accepted.connect(self.accept)
@@ -67,14 +78,15 @@ class ProfileDialog(QDialog):
         """Get the profile name."""
         return self.name_edit.text().strip()
 
-    def get_contact_fields(self) -> tuple[str | None, str | None, str | None]:
+    def get_contact_fields(self) -> tuple[str | None, str | None, str | None, str | None]:
         """Get contact information fields.
         
         Returns:
-            Tuple of (contact_person, email, phone)
+            Tuple of (contact_person, email, phone, business_address)
         """
         contact = self.contact_edit.text().strip() or None
         email = self.email_edit.text().strip() or None
         phone = self.phone_edit.text().strip() or None
-        return contact, email, phone
+        business_address = self.business_address_edit.toPlainText().strip() or None
+        return contact, email, phone, business_address
 
