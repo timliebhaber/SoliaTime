@@ -123,32 +123,37 @@ class ProfilesViewModel(QObject):
         Args:
             profile_id: Profile ID
             name: New name (if provided)
-            contact_person: New contact person (if provided)
-            email: New email (if provided)
-            phone: New phone (if provided)
-            business_address: New business address (if provided)
-            notes: New notes (if provided)
+            contact_person: New contact person (if provided, None to clear)
+            email: New email (if provided, None to clear)
+            phone: New phone (if provided, None to clear)
+            business_address: New business address (if provided, None to clear)
+            notes: New notes (if provided, None to clear)
         """
         prof = self.repo.get_profile(profile_id)
         if not prof:
             return
         
-        # Update name
-        if name is not None and name != prof["name"]:
+        # Update name - always update if provided
+        if name is not None:
             self.repo.rename_profile(profile_id, name)
         
-        # Update contacts
-        if any(x is not None for x in [contact_person, email, phone, business_address]):
+        # Update contacts - when saving from the form, all fields are always provided
+        # (even if None for cleared fields), so we always update all contact fields
+        # to ensure overwrites work correctly. We detect this by checking if name was
+        # provided (which indicates a form save) or if any contact field is provided.
+        if name is not None or any(x is not None for x in [contact_person, email, phone, business_address]):
+            # Update all contact fields with provided values
+            # None values will clear existing fields (overwrite mode)
             self.repo.update_profile_contacts(
                 profile_id,
                 None,  # company is always None now
-                contact_person if contact_person is not None else prof.get("contact_person"),
-                email if email is not None else prof.get("email"),
-                phone if phone is not None else prof.get("phone"),
-                business_address if business_address is not None else prof.get("business_address"),
+                contact_person,  # Use provided value (None if cleared, None if not provided)
+                email,  # Use provided value (None if cleared, None if not provided)
+                phone,  # Use provided value (None if cleared, None if not provided)
+                business_address,  # Use provided value (None if cleared, None if not provided)
             )
         
-        # Update notes
+        # Update notes - always update if provided (including None to clear)
         if notes is not None:
             self.repo.set_profile_notes(profile_id, notes)
         
