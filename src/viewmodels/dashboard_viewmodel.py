@@ -15,6 +15,9 @@ class DashboardViewModel(QObject):
     navigate_to_profiles = Signal()
     navigate_to_projects = Signal()
     navigate_to_services = Signal()
+    navigate_to_weekly = Signal()
+    navigate_to_invoices = Signal()
+    navigate_to_vat_calculator = Signal()
     
     def __init__(self) -> None:
         """Initialize dashboard ViewModel."""
@@ -35,4 +38,16 @@ class DashboardViewModel(QObject):
     def request_navigate_to_services(self) -> None:
         """Request navigation to services view."""
         self.navigate_to_services.emit()
+    
+    def request_navigate_to_weekly(self) -> None:
+        """Request navigation to weekly view."""
+        self.navigate_to_weekly.emit()
+    
+    def request_navigate_to_invoices(self) -> None:
+        """Request navigation to invoices view."""
+        self.navigate_to_invoices.emit()
+    
+    def request_navigate_to_vat_calculator(self) -> None:
+        """Request navigation to VAT calculator view."""
+        self.navigate_to_vat_calculator.emit()
 

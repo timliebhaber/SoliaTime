@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QFormLayout,
     QGroupBox,
@@ -144,6 +145,21 @@ class ProjectsView(QWidget):
         self.deadline_label.setMinimumHeight(20)
         self.deadline_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         
+        self.start_date_label = QLabel("—")
+        self.start_date_label.setWordWrap(True)
+        self.start_date_label.setMinimumHeight(20)
+        self.start_date_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        
+        # Invoice checkboxes (read-only display, use edit to change)
+        invoice_row = QHBoxLayout()
+        self.invoice_sent_check = QCheckBox("Invoice sent")
+        self.invoice_sent_check.setEnabled(False)  # Read-only in details view
+        self.invoice_paid_check = QCheckBox("Invoice paid")
+        self.invoice_paid_check.setEnabled(False)  # Read-only in details view
+        invoice_row.addWidget(self.invoice_sent_check)
+        invoice_row.addWidget(self.invoice_paid_check)
+        invoice_row.addStretch()
+        
         self.notes_display = QPlainTextEdit()
         self.notes_display.setMaximumHeight(80)
         self.notes_display.setPlaceholderText("Enter project notes...")
@@ -153,6 +169,8 @@ class ProjectsView(QWidget):
         info_form.addRow("Estimated Time:", self.estimated_time_label)
         info_form.addRow("Service:", self.service_label)
         info_form.addRow("Deadline:", self.deadline_label)
+        info_form.addRow("Start Date:", self.start_date_label)
+        info_form.addRow("", invoice_row)
         info_form.addRow("Notes:", self.notes_display)
         
         # Edit and Save buttons
@@ -279,10 +297,14 @@ class ProjectsView(QWidget):
         estimated_seconds = dlg.get_estimated_seconds()
         service_id = dlg.get_service_id()
         deadline_ts = dlg.get_deadline_timestamp()
+        start_date_ts = dlg.get_start_date_timestamp()
+        invoice_sent = dlg.get_invoice_sent()
+        invoice_paid = dlg.get_invoice_paid()
         notes = dlg.get_notes()
         
         self.viewmodel.create_project(
-            profile_id, name, estimated_seconds, service_id, deadline_ts, notes
+            profile_id, name, estimated_seconds, service_id, deadline_ts,
+            start_date_ts, invoice_sent, invoice_paid, notes
         )
     
     def _on_delete_project(self) -> None:
@@ -318,20 +340,21 @@ class ProjectsView(QWidget):
         # Get current notes from text field
         notes = self.notes_display.toPlainText().strip() or None
         
-        # Update only the notes
+        # Update only the notes (preserve other fields)
         self.viewmodel.update_project(
             project_id,
             str(project["name"]),
             int(project["estimated_seconds"]) if project["estimated_seconds"] else None,
             int(project["service_id"]) if project["service_id"] else None,
             int(project["deadline_ts"]) if project["deadline_ts"] else None,
+            int(project["start_date_ts"]) if project["start_date_ts"] else None,
+            bool(project["invoice_sent"]),
+            bool(project["invoice_paid"]),
             notes
         )
         
         # Reload project details to reflect changes
         self._load_project_details(project_id)
-        
-        QMessageBox.information(self, "Saved", "Notes saved successfully.")
     
     def _on_edit_project(self) -> None:
         """Handle edit project button."""
@@ -348,6 +371,11 @@ class ProjectsView(QWidget):
         if project["deadline_ts"]:
             deadline = datetime.fromtimestamp(int(project["deadline_ts"]))
         
+        # Convert start date timestamp to datetime
+        start_date = None
+        if project["start_date_ts"]:
+            start_date = datetime.fromtimestamp(int(project["start_date_ts"]))
+        
         # Convert seconds to hours
         estimated_hours = 0
         if project["estimated_seconds"]:
@@ -363,6 +391,9 @@ class ProjectsView(QWidget):
             estimated_hours=estimated_hours,
             service_id=int(project["service_id"]) if project["service_id"] else None,
             deadline=deadline,
+            start_date=start_date,
+            invoice_sent=bool(project["invoice_sent"]),
+            invoice_paid=bool(project["invoice_paid"]),
             notes=str(project["notes"] or ""),
         )
         
@@ -377,10 +408,14 @@ class ProjectsView(QWidget):
         estimated_seconds = dlg.get_estimated_seconds()
         service_id = dlg.get_service_id()
         deadline_ts = dlg.get_deadline_timestamp()
+        start_date_ts = dlg.get_start_date_timestamp()
+        invoice_sent = dlg.get_invoice_sent()
+        invoice_paid = dlg.get_invoice_paid()
         notes = dlg.get_notes()
         
         self.viewmodel.update_project(
-            project_id, name, estimated_seconds, service_id, deadline_ts, notes
+            project_id, name, estimated_seconds, service_id, deadline_ts,
+            start_date_ts, invoice_sent, invoice_paid, notes
         )
         
         # Reload project details to reflect changes
@@ -468,6 +503,9 @@ class ProjectsView(QWidget):
             self.estimated_time_label.setText("—")
             self.service_label.setText("—")
             self.deadline_label.setText("—")
+            self.start_date_label.setText("—")
+            self.invoice_sent_check.setChecked(False)
+            self.invoice_paid_check.setChecked(False)
             self.notes_display.clear()
             return
         
@@ -507,6 +545,20 @@ class ProjectsView(QWidget):
             self.deadline_label.setText(dt.strftime("%Y-%m-%d"))
         else:
             self.deadline_label.setText("No deadline")
+        
+        # Start Date
+        start_date_ts = project["start_date_ts"] if "start_date_ts" in project.keys() else None
+        if start_date_ts is not None:
+            dt = datetime.fromtimestamp(int(start_date_ts))
+            self.start_date_label.setText(dt.strftime("%Y-%m-%d"))
+        else:
+            self.start_date_label.setText("No start date")
+        
+        # Invoice checkboxes
+        invoice_sent = project["invoice_sent"] if "invoice_sent" in project.keys() else 0
+        invoice_paid = project["invoice_paid"] if "invoice_paid" in project.keys() else 0
+        self.invoice_sent_check.setChecked(bool(invoice_sent))
+        self.invoice_paid_check.setChecked(bool(invoice_paid))
         
         # Notes
         notes = project["notes"] if "notes" in project.keys() else None

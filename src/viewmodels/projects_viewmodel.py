@@ -93,6 +93,9 @@ class ProjectsViewModel(QObject):
         estimated_seconds: Optional[int] = None,
         service_id: Optional[int] = None,
         deadline_ts: Optional[int] = None,
+        start_date_ts: Optional[int] = None,
+        invoice_sent: bool = False,
+        invoice_paid: bool = False,
         notes: Optional[str] = None,
     ) -> int:
         """Create a new project.
@@ -103,13 +106,17 @@ class ProjectsViewModel(QObject):
             estimated_seconds: Estimated time in seconds
             service_id: Service ID (optional)
             deadline_ts: Deadline timestamp (optional)
+            start_date_ts: Start date timestamp (optional)
+            invoice_sent: Whether invoice has been sent
+            invoice_paid: Whether invoice has been paid
             notes: Project notes
             
         Returns:
             ID of created project
         """
         project_id = self.repo.create_project(
-            profile_id, name, estimated_seconds, service_id, deadline_ts, notes
+            profile_id, name, estimated_seconds, service_id, deadline_ts,
+            start_date_ts, invoice_sent, invoice_paid, notes
         )
         self._refresh_projects()
         self.select_project(project_id)
@@ -122,6 +129,9 @@ class ProjectsViewModel(QObject):
         estimated_seconds: Optional[int],
         service_id: Optional[int],
         deadline_ts: Optional[int],
+        start_date_ts: Optional[int],
+        invoice_sent: bool,
+        invoice_paid: bool,
         notes: Optional[str],
     ) -> None:
         """Update project information.
@@ -132,10 +142,14 @@ class ProjectsViewModel(QObject):
             estimated_seconds: Estimated time in seconds
             service_id: Service ID (can be None)
             deadline_ts: Deadline timestamp (can be None)
+            start_date_ts: Start date timestamp (can be None)
+            invoice_sent: Whether invoice has been sent
+            invoice_paid: Whether invoice has been paid
             notes: Project notes
         """
         self.repo.update_project(
-            project_id, name, estimated_seconds, service_id, deadline_ts, notes
+            project_id, name, estimated_seconds, service_id, deadline_ts,
+            start_date_ts, invoice_sent, invoice_paid, notes
         )
         self._refresh_projects()
     

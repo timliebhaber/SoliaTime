@@ -151,5 +151,20 @@ def _init_db(conn: sqlite3.Connection) -> None:
                 # Column may already exist
                 pass
             conn.execute("PRAGMA user_version = 12;")
+        elif version == 12:
+            # Migrate to v13: add start_date_ts, invoice_sent, invoice_paid to projects
+            try:
+                conn.execute("ALTER TABLE projects ADD COLUMN start_date_ts INTEGER;")
+            except Exception:
+                pass
+            try:
+                conn.execute("ALTER TABLE projects ADD COLUMN invoice_sent INTEGER NOT NULL DEFAULT 0;")
+            except Exception:
+                pass
+            try:
+                conn.execute("ALTER TABLE projects ADD COLUMN invoice_paid INTEGER NOT NULL DEFAULT 0;")
+            except Exception:
+                pass
+            conn.execute("PRAGMA user_version = 13;")
 
 

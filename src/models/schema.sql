@@ -1,7 +1,7 @@
 PRAGMA foreign_keys = ON;
 
 -- schema version
-PRAGMA user_version = 12;
+PRAGMA user_version = 13;
 
 CREATE TABLE IF NOT EXISTS profiles (
   id INTEGER PRIMARY KEY,
@@ -77,6 +77,9 @@ CREATE TABLE IF NOT EXISTS projects (
   estimated_seconds INTEGER,
   service_id INTEGER REFERENCES services(id) ON DELETE SET NULL,
   deadline_ts INTEGER,
+  start_date_ts INTEGER,
+  invoice_sent INTEGER NOT NULL DEFAULT 0,
+  invoice_paid INTEGER NOT NULL DEFAULT 0,
   notes TEXT,
   created_ts INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 );

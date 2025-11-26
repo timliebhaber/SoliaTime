@@ -6,11 +6,13 @@ from typing import Optional
 
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDateEdit,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QPlainTextEdit,
@@ -33,6 +35,9 @@ class ProjectDialog(QDialog):
         estimated_hours: float = 0,
         service_id: Optional[int] = None,
         deadline: Optional[datetime] = None,
+        start_date: Optional[datetime] = None,
+        invoice_sent: bool = False,
+        invoice_paid: bool = False,
         notes: str = "",
     ) -> None:
         """Initialize project dialog.
@@ -47,6 +52,9 @@ class ProjectDialog(QDialog):
             estimated_hours: Estimated time in hours
             service_id: Service ID
             deadline: Deadline date
+            start_date: Start date
+            invoice_sent: Whether invoice has been sent
+            invoice_paid: Whether invoice has been paid
             notes: Project notes
         """
         super().__init__(parent)
@@ -114,6 +122,32 @@ class ProjectDialog(QDialog):
         
         form.addRow("Deadline", self.deadline_edit)
         
+        # Start Date
+        self.start_date_edit = QDateEdit(self)
+        self.start_date_edit.setCalendarPopup(True)
+        self.start_date_edit.setSpecialValueText("No start date")
+        self.start_date_edit.setMinimumDate(QDate(2000, 1, 1))
+        
+        if start_date is not None:
+            qdate = QDate(start_date.year, start_date.month, start_date.day)
+            self.start_date_edit.setDate(qdate)
+        else:
+            # Set to minimum date to indicate "no start date"
+            self.start_date_edit.setDate(QDate(2000, 1, 1))
+        
+        form.addRow("Start Date", self.start_date_edit)
+        
+        # Invoice checkboxes
+        invoice_row = QHBoxLayout()
+        self.invoice_sent_check = QCheckBox("Invoice sent", self)
+        self.invoice_sent_check.setChecked(invoice_sent)
+        self.invoice_paid_check = QCheckBox("Invoice paid", self)
+        self.invoice_paid_check.setChecked(invoice_paid)
+        invoice_row.addWidget(self.invoice_sent_check)
+        invoice_row.addWidget(self.invoice_paid_check)
+        invoice_row.addStretch()
+        form.addRow("", invoice_row)
+        
         # Notes
         self.notes_edit = QPlainTextEdit(self)
         self.notes_edit.setPlaceholderText("Notes about this project...")
@@ -170,6 +204,22 @@ class ProjectDialog(QDialog):
             return None
         dt = datetime(qdate.year(), qdate.month(), qdate.day())
         return int(dt.timestamp())
+
+    def get_start_date_timestamp(self) -> Optional[int]:
+        """Get the start date as a unix timestamp."""
+        qdate = self.start_date_edit.date()
+        if qdate == QDate(2000, 1, 1):
+            return None
+        dt = datetime(qdate.year(), qdate.month(), qdate.day())
+        return int(dt.timestamp())
+
+    def get_invoice_sent(self) -> bool:
+        """Get whether invoice has been sent."""
+        return self.invoice_sent_check.isChecked()
+
+    def get_invoice_paid(self) -> bool:
+        """Get whether invoice has been paid."""
+        return self.invoice_paid_check.isChecked()
 
     def get_notes(self) -> Optional[str]:
         """Get the project notes."""

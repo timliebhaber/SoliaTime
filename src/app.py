@@ -12,10 +12,13 @@ from src.services.state_service import StateService
 from src.services.timer_service import TimerService
 from src.viewmodels import (
     DashboardViewModel,
+    InvoicesViewModel,
     ProfilesViewModel,
     ProjectsViewModel,
     ServicesViewModel,
     TimerViewModel,
+    VatCalculatorViewModel,
+    WeeklyViewModel,
 )
 from src.views.main_window import MainWindow
 
@@ -64,6 +67,9 @@ def main() -> int:
     profiles_vm = ProfilesViewModel(state_service, timer_service)
     projects_vm = ProjectsViewModel(state_service)
     services_vm = ServicesViewModel(state_service)
+    weekly_vm = WeeklyViewModel(state_service)
+    invoices_vm = InvoicesViewModel()
+    vat_calculator_vm = VatCalculatorViewModel()
     
     # Create main window with ViewModels
     window = MainWindow(
@@ -74,6 +80,9 @@ def main() -> int:
         profiles_vm=profiles_vm,
         projects_vm=projects_vm,
         services_vm=services_vm,
+        weekly_vm=weekly_vm,
+        invoices_vm=invoices_vm,
+        vat_calculator_vm=vat_calculator_vm,
     )
     
     window.show()

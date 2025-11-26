@@ -76,6 +76,21 @@ class DashboardView(QWidget):
         self.services_tile.set_click_callback(self.viewmodel.request_navigate_to_services)
         tiles_layout.addWidget(self.services_tile, 1, 1)
         
+        # Weekly tile
+        self.weekly_tile = TileButton("Weekly", "📅")
+        self.weekly_tile.set_click_callback(self.viewmodel.request_navigate_to_weekly)
+        tiles_layout.addWidget(self.weekly_tile, 2, 0)
+        
+        # Invoices tile
+        self.invoices_tile = TileButton("Invoices", "📄")
+        self.invoices_tile.set_click_callback(self.viewmodel.request_navigate_to_invoices)
+        tiles_layout.addWidget(self.invoices_tile, 2, 1)
+        
+        # Mehrwertsteuer Calculator tile
+        self.vat_tile = TileButton("MwSt Calculator", "🧮")
+        self.vat_tile.set_click_callback(self.viewmodel.request_navigate_to_vat_calculator)
+        tiles_layout.addWidget(self.vat_tile, 3, 0)
+        
         layout.addWidget(tiles_container)
         layout.addStretch()
 

@@ -336,6 +336,9 @@ class Repository:
         estimated_seconds: int | None = None,
         service_id: int | None = None,
         deadline_ts: int | None = None,
+        start_date_ts: int | None = None,
+        invoice_sent: bool = False,
+        invoice_paid: bool = False,
         notes: str | None = None,
     ) -> int:
         """Create a new project.
@@ -346,6 +349,9 @@ class Repository:
             estimated_seconds: Estimated time in seconds
             service_id: Service ID (optional)
             deadline_ts: Deadline timestamp (optional)
+            start_date_ts: Start date timestamp (optional)
+            invoice_sent: Whether invoice has been sent
+            invoice_paid: Whether invoice has been paid
             notes: Project notes (optional)
             
         Returns:
@@ -353,8 +359,8 @@ class Repository:
         """
         with self.conn:
             cur = self.conn.execute(
-                "INSERT INTO projects(profile_id, name, estimated_seconds, service_id, deadline_ts, notes) VALUES(?, ?, ?, ?, ?, ?)",
-                (profile_id, name, estimated_seconds, service_id, deadline_ts, notes),
+                "INSERT INTO projects(profile_id, name, estimated_seconds, service_id, deadline_ts, start_date_ts, invoice_sent, invoice_paid, notes) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (profile_id, name, estimated_seconds, service_id, deadline_ts, start_date_ts, 1 if invoice_sent else 0, 1 if invoice_paid else 0, notes),
             )
             return cur.lastrowid
 
@@ -417,6 +423,9 @@ class Repository:
         estimated_seconds: int | None,
         service_id: int | None,
         deadline_ts: int | None,
+        start_date_ts: int | None,
+        invoice_sent: bool,
+        invoice_paid: bool,
         notes: str | None,
     ) -> None:
         """Update a project.
@@ -427,12 +436,15 @@ class Repository:
             estimated_seconds: Estimated time in seconds
             service_id: Service ID (can be None)
             deadline_ts: Deadline timestamp (can be None)
+            start_date_ts: Start date timestamp (can be None)
+            invoice_sent: Whether invoice has been sent
+            invoice_paid: Whether invoice has been paid
             notes: Project notes (can be None)
         """
         with self.conn:
             self.conn.execute(
-                "UPDATE projects SET name = ?, estimated_seconds = ?, service_id = ?, deadline_ts = ?, notes = ? WHERE id = ?",
-                (name, estimated_seconds, service_id, deadline_ts, notes, project_id),
+                "UPDATE projects SET name = ?, estimated_seconds = ?, service_id = ?, deadline_ts = ?, start_date_ts = ?, invoice_sent = ?, invoice_paid = ?, notes = ? WHERE id = ?",
+                (name, estimated_seconds, service_id, deadline_ts, start_date_ts, 1 if invoice_sent else 0, 1 if invoice_paid else 0, notes, project_id),
             )
 
     def delete_project(self, project_id: int) -> None:
@@ -497,3 +509,27 @@ class Repository:
         """
         with self.conn:
             self.conn.execute("DELETE FROM project_todos WHERE id = ?", (todo_id,))
+
+    # Weekly aggregations
+    def get_weekly_summary(self) -> list[sqlite3.Row]:
+        """Get weekly summary of tracked time.
+        
+        Returns list of weeks with calendar week, start/end dates, and total duration.
+        Only includes weeks where time was tracked (completed entries only).
+        
+        Returns:
+            List of rows with: year, week_number, week_start_ts, week_end_ts, total_seconds
+        """
+        sql = """
+        SELECT 
+            strftime('%Y', datetime(start_ts, 'unixepoch')) as year,
+            strftime('%W', datetime(start_ts, 'unixepoch')) as week_number,
+            MIN(start_ts) as week_start_ts,
+            MAX(end_ts) as week_end_ts,
+            SUM(end_ts - start_ts) as total_seconds
+        FROM time_entries
+        WHERE end_ts IS NOT NULL
+        GROUP BY year, week_number
+        ORDER BY year DESC, week_number DESC
+        """
+        return self.conn.execute(sql).fetchall()

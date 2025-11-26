@@ -27,17 +27,20 @@ from PySide6.QtWidgets import (
 
 from src.services.export_service import export_csv, export_json
 from src.services.settings_service import AppSettings
-from src.views import DashboardView, ProfilesView, ProjectsView, ServicesView, TimerView
+from src.views import DashboardView, InvoicesView, ProfilesView, ProjectsView, ServicesView, TimerView, VatCalculatorView, WeeklyView
 
 if TYPE_CHECKING:
     from src.services.state_service import StateService
     from src.services.timer_service import TimerService
     from src.viewmodels import (
         DashboardViewModel,
+        InvoicesViewModel,
         ProfilesViewModel,
         ProjectsViewModel,
         ServicesViewModel,
         TimerViewModel,
+        VatCalculatorViewModel,
+        WeeklyViewModel,
     )
 
 
@@ -60,6 +63,9 @@ class MainWindow(QMainWindow):
         profiles_vm: "ProfilesViewModel",
         projects_vm: "ProjectsViewModel",
         services_vm: "ServicesViewModel",
+        weekly_vm: "WeeklyViewModel",
+        invoices_vm: "InvoicesViewModel",
+        vat_calculator_vm: "VatCalculatorViewModel",
     ) -> None:
         """Initialize main window.
         
@@ -71,6 +77,9 @@ class MainWindow(QMainWindow):
             profiles_vm: Profiles ViewModel
             projects_vm: Projects ViewModel
             services_vm: Services ViewModel
+            weekly_vm: Weekly ViewModel
+            invoices_vm: Invoices ViewModel
+            vat_calculator_vm: VAT Calculator ViewModel
         """
         super().__init__()
         self.state = state_service
@@ -82,6 +91,9 @@ class MainWindow(QMainWindow):
         self.profiles_vm = profiles_vm
         self.projects_vm = projects_vm
         self.services_vm = services_vm
+        self.weekly_vm = weekly_vm
+        self.invoices_vm = invoices_vm
+        self.vat_calculator_vm = vat_calculator_vm
         
         # Setup window
         self.setWindowTitle("SoliaTime")
@@ -157,6 +169,21 @@ class MainWindow(QMainWindow):
         self.projects_btn.clicked.connect(lambda: self.stack.setCurrentIndex(3))
         nav_btn_container.addWidget(self.projects_btn)
         
+        self.weekly_btn = QPushButton("📅 Weekly")
+        self.weekly_btn.setMaximumWidth(150)
+        self.weekly_btn.clicked.connect(lambda: self.stack.setCurrentIndex(5))
+        nav_btn_container.addWidget(self.weekly_btn)
+        
+        self.invoices_btn = QPushButton("📄 Invoices")
+        self.invoices_btn.setMaximumWidth(150)
+        self.invoices_btn.clicked.connect(lambda: self.stack.setCurrentIndex(6))
+        nav_btn_container.addWidget(self.invoices_btn)
+        
+        self.vat_btn = QPushButton("🧮 MwSt")
+        self.vat_btn.setMaximumWidth(150)
+        self.vat_btn.clicked.connect(lambda: self.stack.setCurrentIndex(7))
+        nav_btn_container.addWidget(self.vat_btn)
+        
         nav_btn_container.addStretch()
         main_layout.addLayout(nav_btn_container)
         
@@ -176,13 +203,19 @@ class MainWindow(QMainWindow):
         self.profiles_view = ProfilesView(self.profiles_vm)
         self.projects_view = ProjectsView(self.projects_vm)
         self.services_view = ServicesView(self.services_vm)
+        self.weekly_view = WeeklyView(self.weekly_vm)
+        self.invoices_view = InvoicesView(self.invoices_vm)
+        self.vat_calculator_view = VatCalculatorView(self.vat_calculator_vm)
         
-        # Add to stack (indices: 0=dashboard, 1=timer, 2=profiles, 3=projects, 4=services)
+        # Add to stack (indices: 0=dashboard, 1=timer, 2=profiles, 3=projects, 4=services, 5=weekly, 6=invoices, 7=vat)
         self.stack.addWidget(self.dashboard_view)
         self.stack.addWidget(self.timer_view)
         self.stack.addWidget(self.profiles_view)
         self.stack.addWidget(self.projects_view)
         self.stack.addWidget(self.services_view)
+        self.stack.addWidget(self.weekly_view)
+        self.stack.addWidget(self.invoices_view)
+        self.stack.addWidget(self.vat_calculator_view)
         
         content_layout.addWidget(self.profiles_sidebar, 1)
         content_layout.addWidget(self.stack, 3)
@@ -219,6 +252,9 @@ class MainWindow(QMainWindow):
         self.dashboard_vm.navigate_to_profiles.connect(lambda: self.stack.setCurrentIndex(2))
         self.dashboard_vm.navigate_to_projects.connect(lambda: self.stack.setCurrentIndex(3))
         self.dashboard_vm.navigate_to_services.connect(lambda: self.stack.setCurrentIndex(4))
+        self.dashboard_vm.navigate_to_weekly.connect(lambda: self.stack.setCurrentIndex(5))
+        self.dashboard_vm.navigate_to_invoices.connect(lambda: self.stack.setCurrentIndex(6))
+        self.dashboard_vm.navigate_to_vat_calculator.connect(lambda: self.stack.setCurrentIndex(7))
         
         # Profiles to Projects navigation
         self.profiles_vm.navigate_to_project_requested.connect(self._navigate_to_project)
