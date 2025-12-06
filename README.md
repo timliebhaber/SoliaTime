@@ -14,16 +14,23 @@
 - **👥 Profile Management** - Organize time by clients with contact information
 - **📋 Project Tracking** - Track time against specific projects with deadlines and estimates
 - **💼 Service Management** - Define billable services with custom rates
-- **📊 Dashboard** - Quick overview of your time tracking activity
+- **🏠 Dashboard** - Modern tile-based navigation for quick access to all features
+
+### 📅 Time Management
+
+- **📊 Weekly Overview** - View time tracked by calendar week with totals
+- **📄 Invoices** - Invoice management for billing clients
+- **🧮 MwSt Calculator** - German VAT calculator supporting 19% and 7% rates
 
 ### 🔧 Advanced Features
 
 - **✏️ Inline Editing** - Double-click any cell to edit profiles, projects, timestamps, or notes
 - **📤 Smart Export** - Export to CSV/JSON with dynamic filenames based on selected filters
 - **🎨 Clean UI** - Modern, intuitive interface with circular progress indicators
-- **🔔 System Tray** - Minimize to tray for quick access
+- **🔔 System Tray** - Minimize to tray for quick access with timer status
 - **💾 Auto-Save** - All changes are automatically persisted to SQLite database
 - **🔍 Flexible Filtering** - Filter entries by profile and project
+- **📐 Window Memory** - Remembers window size and position between sessions
 
 ### 📈 Data Management
 
@@ -43,7 +50,8 @@ Built with clean **MVVM architecture** (Model-View-ViewModel) for maintainabilit
  ┣ 📂 viewmodels     # Business logic and state management
  ┣ 📂 views          # UI components (PySide6 widgets)
  ┣ 📂 services       # Application services (Timer, Export, Settings)
- ┗ 📂 ui             # Reusable UI components and dialogs
+ ┣ 📂 ui             # Reusable UI components and dialogs
+ ┗ 📂 utils          # Helper functions and formatters
 ```
 
 Key design patterns:
@@ -52,6 +60,7 @@ Key design patterns:
 - **Service Layer** for business logic
 - **Singleton State Service** for centralized state management
 - **Signal-based communication** for loose coupling
+- **Dependency Injection** for testability
 
 ## 🚀 Getting Started
 
@@ -65,8 +74,8 @@ Key design patterns:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/yourusername/timely-time-tracking.git
-   cd timely-time-tracking
+   git clone https://github.com/yourusername/SoliaTime.git
+   cd SoliaTime
    ```
 
 2. **Install dependencies**
@@ -103,9 +112,25 @@ The executable will be available at `dist/SoliaTime.exe` - no installation requi
 
 ### Keyboard Shortcuts
 
-- `Ctrl+T` - Toggle timer
-- `Delete` - Delete selected entries
-- Double-click any cell to edit
+| Shortcut | Action                  |
+| -------- | ----------------------- |
+| `Space`  | Toggle timer            |
+| `Ctrl+N` | Create new profile      |
+| `Delete` | Delete selected entries |
+
+### Navigation
+
+The dashboard provides quick access to all modules:
+
+| Module      | Description                                    |
+| ----------- | ---------------------------------------------- |
+| ⏱️ Timer    | Time tracking with start/stop controls         |
+| 👥 Profiles | Client/profile management with contact details |
+| 📋 Projects | Project tracking with deadlines and estimates  |
+| 💼 Services | Service catalog with hourly rates              |
+| 📅 Weekly   | Weekly time summaries by calendar week         |
+| 📄 Invoices | Invoice management                             |
+| 🧮 MwSt     | German VAT calculator (19%/7%)                 |
 
 ### Export Formats
 
@@ -139,18 +164,28 @@ ClientA,Website Redesign,[20.10.25] - 09:00,[20.10.25] - 11:30,02:30:00,Design w
 
 All data is stored locally in an SQLite database:
 
-- **Location**: `%LOCALAPPDATA%/Solia/data/solia.db`
+- **Database**: `%LOCALAPPDATA%/Solia/data/solia.db`
 - **Settings**: `%LOCALAPPDATA%/Solia/settings.json`
 
 Your data never leaves your machine! 🔒
 
 ## 🛠️ Technology Stack
 
-- **Framework**: [PySide6](https://pypi.org/project/PySide6/) (Qt for Python)
-- **Database**: SQLite3
-- **Packaging**: PyInstaller
-- **Architecture**: MVVM (Model-View-ViewModel)
-- **Language**: Python 3.10+
+| Component    | Technology                                                   |
+| ------------ | ------------------------------------------------------------ |
+| Framework    | [PySide6](https://pypi.org/project/PySide6/) (Qt for Python) |
+| Database     | SQLite3                                                      |
+| Packaging    | PyInstaller                                                  |
+| Architecture | MVVM (Model-View-ViewModel)                                  |
+| Language     | Python 3.10+                                                 |
+
+### Dependencies
+
+- **PySide6** - Qt bindings for Python
+- **appdirs** - Platform-specific application directories
+- **python-dateutil** - Date/time utilities
+- **typing-extensions** - Type hint support
+- **watchfiles** - File watching for development
 
 ## 📝 License
 
