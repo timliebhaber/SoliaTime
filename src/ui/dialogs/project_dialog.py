@@ -38,6 +38,7 @@ class ProjectDialog(QDialog):
         start_date: Optional[datetime] = None,
         invoice_sent: bool = False,
         invoice_paid: bool = False,
+        invoice_number: str = "",
         notes: str = "",
     ) -> None:
         """Initialize project dialog.
@@ -55,6 +56,7 @@ class ProjectDialog(QDialog):
             start_date: Start date
             invoice_sent: Whether invoice has been sent
             invoice_paid: Whether invoice has been paid
+            invoice_number: Invoice number
             notes: Project notes
         """
         super().__init__(parent)
@@ -148,6 +150,12 @@ class ProjectDialog(QDialog):
         invoice_row.addStretch()
         form.addRow("", invoice_row)
         
+        # Invoice number
+        self.invoice_number_edit = QLineEdit(self)
+        self.invoice_number_edit.setPlaceholderText("e.g., INV-2024-001")
+        self.invoice_number_edit.setText(invoice_number)
+        form.addRow("Invoice Number", self.invoice_number_edit)
+        
         # Notes
         self.notes_edit = QPlainTextEdit(self)
         self.notes_edit.setPlaceholderText("Notes about this project...")
@@ -220,6 +228,11 @@ class ProjectDialog(QDialog):
     def get_invoice_paid(self) -> bool:
         """Get whether invoice has been paid."""
         return self.invoice_paid_check.isChecked()
+
+    def get_invoice_number(self) -> Optional[str]:
+        """Get the invoice number."""
+        invoice_number = self.invoice_number_edit.text().strip()
+        return invoice_number if invoice_number else None
 
     def get_notes(self) -> Optional[str]:
         """Get the project notes."""

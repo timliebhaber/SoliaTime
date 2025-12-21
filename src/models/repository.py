@@ -339,6 +339,7 @@ class Repository:
         start_date_ts: int | None = None,
         invoice_sent: bool = False,
         invoice_paid: bool = False,
+        invoice_number: str | None = None,
         notes: str | None = None,
     ) -> int:
         """Create a new project.
@@ -352,6 +353,7 @@ class Repository:
             start_date_ts: Start date timestamp (optional)
             invoice_sent: Whether invoice has been sent
             invoice_paid: Whether invoice has been paid
+            invoice_number: Invoice number (optional)
             notes: Project notes (optional)
             
         Returns:
@@ -359,8 +361,8 @@ class Repository:
         """
         with self.conn:
             cur = self.conn.execute(
-                "INSERT INTO projects(profile_id, name, estimated_seconds, service_id, deadline_ts, start_date_ts, invoice_sent, invoice_paid, notes) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (profile_id, name, estimated_seconds, service_id, deadline_ts, start_date_ts, 1 if invoice_sent else 0, 1 if invoice_paid else 0, notes),
+                "INSERT INTO projects(profile_id, name, estimated_seconds, service_id, deadline_ts, start_date_ts, invoice_sent, invoice_paid, invoice_number, notes) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (profile_id, name, estimated_seconds, service_id, deadline_ts, start_date_ts, 1 if invoice_sent else 0, 1 if invoice_paid else 0, invoice_number, notes),
             )
             return cur.lastrowid
 
@@ -426,6 +428,7 @@ class Repository:
         start_date_ts: int | None,
         invoice_sent: bool,
         invoice_paid: bool,
+        invoice_number: str | None,
         notes: str | None,
     ) -> None:
         """Update a project.
@@ -439,12 +442,13 @@ class Repository:
             start_date_ts: Start date timestamp (can be None)
             invoice_sent: Whether invoice has been sent
             invoice_paid: Whether invoice has been paid
+            invoice_number: Invoice number (can be None)
             notes: Project notes (can be None)
         """
         with self.conn:
             self.conn.execute(
-                "UPDATE projects SET name = ?, estimated_seconds = ?, service_id = ?, deadline_ts = ?, start_date_ts = ?, invoice_sent = ?, invoice_paid = ?, notes = ? WHERE id = ?",
-                (name, estimated_seconds, service_id, deadline_ts, start_date_ts, 1 if invoice_sent else 0, 1 if invoice_paid else 0, notes, project_id),
+                "UPDATE projects SET name = ?, estimated_seconds = ?, service_id = ?, deadline_ts = ?, start_date_ts = ?, invoice_sent = ?, invoice_paid = ?, invoice_number = ?, notes = ? WHERE id = ?",
+                (name, estimated_seconds, service_id, deadline_ts, start_date_ts, 1 if invoice_sent else 0, 1 if invoice_paid else 0, invoice_number, notes, project_id),
             )
 
     def delete_project(self, project_id: int) -> None:

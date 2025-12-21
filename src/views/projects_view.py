@@ -160,6 +160,11 @@ class ProjectsView(QWidget):
         invoice_row.addWidget(self.invoice_paid_check)
         invoice_row.addStretch()
         
+        self.invoice_number_label = QLabel("—")
+        self.invoice_number_label.setWordWrap(True)
+        self.invoice_number_label.setMinimumHeight(20)
+        self.invoice_number_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        
         self.notes_display = QPlainTextEdit()
         self.notes_display.setMaximumHeight(80)
         self.notes_display.setPlaceholderText("Enter project notes...")
@@ -171,6 +176,7 @@ class ProjectsView(QWidget):
         info_form.addRow("Deadline:", self.deadline_label)
         info_form.addRow("Start Date:", self.start_date_label)
         info_form.addRow("", invoice_row)
+        info_form.addRow("Invoice Number:", self.invoice_number_label)
         info_form.addRow("Notes:", self.notes_display)
         
         # Edit and Save buttons
@@ -300,11 +306,12 @@ class ProjectsView(QWidget):
         start_date_ts = dlg.get_start_date_timestamp()
         invoice_sent = dlg.get_invoice_sent()
         invoice_paid = dlg.get_invoice_paid()
+        invoice_number = dlg.get_invoice_number()
         notes = dlg.get_notes()
         
         self.viewmodel.create_project(
             profile_id, name, estimated_seconds, service_id, deadline_ts,
-            start_date_ts, invoice_sent, invoice_paid, notes
+            start_date_ts, invoice_sent, invoice_paid, invoice_number, notes
         )
     
     def _on_delete_project(self) -> None:
@@ -333,9 +340,12 @@ class ProjectsView(QWidget):
         if project_id is None:
             return
         
-        project = self.viewmodel.repo.get_project(project_id)
-        if not project:
+        project_row = self.viewmodel.repo.get_project(project_id)
+        if not project_row:
             return
+        
+        # Convert Row to dict for easier access
+        project = dict(project_row)
         
         # Get current notes from text field
         notes = self.notes_display.toPlainText().strip() or None
@@ -344,12 +354,13 @@ class ProjectsView(QWidget):
         self.viewmodel.update_project(
             project_id,
             str(project["name"]),
-            int(project["estimated_seconds"]) if project["estimated_seconds"] else None,
-            int(project["service_id"]) if project["service_id"] else None,
-            int(project["deadline_ts"]) if project["deadline_ts"] else None,
-            int(project["start_date_ts"]) if project["start_date_ts"] else None,
-            bool(project["invoice_sent"]),
-            bool(project["invoice_paid"]),
+            int(project["estimated_seconds"]) if project.get("estimated_seconds") else None,
+            int(project["service_id"]) if project.get("service_id") else None,
+            int(project["deadline_ts"]) if project.get("deadline_ts") else None,
+            int(project["start_date_ts"]) if project.get("start_date_ts") else None,
+            bool(project.get("invoice_sent", 0)),
+            bool(project.get("invoice_paid", 0)),
+            str(project.get("invoice_number")) if project.get("invoice_number") else None,
             notes
         )
         
@@ -358,68 +369,81 @@ class ProjectsView(QWidget):
     
     def _on_edit_project(self) -> None:
         """Handle edit project button."""
-        project_id = self.viewmodel.current_project_id
-        if project_id is None:
-            return
-        
-        project = self.viewmodel.repo.get_project(project_id)
-        if not project:
-            return
-        
-        # Convert timestamp to datetime
-        deadline = None
-        if project["deadline_ts"]:
-            deadline = datetime.fromtimestamp(int(project["deadline_ts"]))
-        
-        # Convert start date timestamp to datetime
-        start_date = None
-        if project["start_date_ts"]:
-            start_date = datetime.fromtimestamp(int(project["start_date_ts"]))
-        
-        # Convert seconds to hours
-        estimated_hours = 0
-        if project["estimated_seconds"]:
-            estimated_hours = int(project["estimated_seconds"]) / 3600
-        
-        dlg = ProjectDialog(
-            self,
-            title="Edit Project",
-            profiles=self.viewmodel.profiles,
-            services=self.viewmodel.services,
-            name=str(project["name"]),
-            profile_id=int(project["profile_id"]),
-            estimated_hours=estimated_hours,
-            service_id=int(project["service_id"]) if project["service_id"] else None,
-            deadline=deadline,
-            start_date=start_date,
-            invoice_sent=bool(project["invoice_sent"]),
-            invoice_paid=bool(project["invoice_paid"]),
-            notes=str(project["notes"] or ""),
-        )
-        
-        if dlg.exec() != QDialog.DialogCode.Accepted:
-            return
-        
-        name = dlg.get_name()
-        if not name:
-            QMessageBox.warning(self, "Invalid Input", "Please enter a project name.")
-            return
-        
-        estimated_seconds = dlg.get_estimated_seconds()
-        service_id = dlg.get_service_id()
-        deadline_ts = dlg.get_deadline_timestamp()
-        start_date_ts = dlg.get_start_date_timestamp()
-        invoice_sent = dlg.get_invoice_sent()
-        invoice_paid = dlg.get_invoice_paid()
-        notes = dlg.get_notes()
-        
-        self.viewmodel.update_project(
-            project_id, name, estimated_seconds, service_id, deadline_ts,
-            start_date_ts, invoice_sent, invoice_paid, notes
-        )
-        
-        # Reload project details to reflect changes
-        self._load_project_details(project_id)
+        try:
+            project_id = self.viewmodel.current_project_id
+            if project_id is None:
+                QMessageBox.warning(self, "No Selection", "Please select a project first.")
+                return
+            
+            project_row = self.viewmodel.repo.get_project(project_id)
+            if not project_row:
+                QMessageBox.warning(self, "Error", "Could not load project data.")
+                return
+            
+            # Convert Row to dict for easier access
+            project = dict(project_row)
+            
+            # Convert timestamp to datetime
+            deadline = None
+            if project.get("deadline_ts"):
+                deadline = datetime.fromtimestamp(int(project["deadline_ts"]))
+            
+            # Convert start date timestamp to datetime
+            start_date = None
+            if project.get("start_date_ts"):
+                start_date = datetime.fromtimestamp(int(project["start_date_ts"]))
+            
+            # Convert seconds to hours
+            estimated_hours = 0
+            if project.get("estimated_seconds"):
+                estimated_hours = int(project["estimated_seconds"]) / 3600
+            
+            dlg = ProjectDialog(
+                self,
+                title="Edit Project",
+                profiles=self.viewmodel.profiles,
+                services=self.viewmodel.services,
+                name=str(project["name"]),
+                profile_id=int(project["profile_id"]),
+                estimated_hours=estimated_hours,
+                service_id=int(project["service_id"]) if project.get("service_id") else None,
+                deadline=deadline,
+                start_date=start_date,
+                invoice_sent=bool(project.get("invoice_sent", 0)),
+                invoice_paid=bool(project.get("invoice_paid", 0)),
+                invoice_number=str(project.get("invoice_number") or ""),
+                notes=str(project.get("notes") or ""),
+            )
+            
+            if dlg.exec() != QDialog.DialogCode.Accepted:
+                return
+            
+            name = dlg.get_name()
+            if not name:
+                QMessageBox.warning(self, "Invalid Input", "Please enter a project name.")
+                return
+            
+            estimated_seconds = dlg.get_estimated_seconds()
+            service_id = dlg.get_service_id()
+            deadline_ts = dlg.get_deadline_timestamp()
+            start_date_ts = dlg.get_start_date_timestamp()
+            invoice_sent = dlg.get_invoice_sent()
+            invoice_paid = dlg.get_invoice_paid()
+            invoice_number = dlg.get_invoice_number()
+            notes = dlg.get_notes()
+            
+            self.viewmodel.update_project(
+                project_id, name, estimated_seconds, service_id, deadline_ts,
+                start_date_ts, invoice_sent, invoice_paid, invoice_number, notes
+            )
+            
+            # Reload project details to reflect changes
+            self._load_project_details(project_id)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to edit project: {str(e)}\n\n{type(e).__name__}")
+            import traceback
+            traceback.print_exc()
     
     # Todo handlers
     
@@ -506,6 +530,7 @@ class ProjectsView(QWidget):
             self.start_date_label.setText("—")
             self.invoice_sent_check.setChecked(False)
             self.invoice_paid_check.setChecked(False)
+            self.invoice_number_label.setText("—")
             self.notes_display.clear()
             return
         
@@ -559,6 +584,13 @@ class ProjectsView(QWidget):
         invoice_paid = project["invoice_paid"] if "invoice_paid" in project.keys() else 0
         self.invoice_sent_check.setChecked(bool(invoice_sent))
         self.invoice_paid_check.setChecked(bool(invoice_paid))
+        
+        # Invoice number
+        invoice_number = project.get("invoice_number")
+        if invoice_number is not None and invoice_number != "":
+            self.invoice_number_label.setText(str(invoice_number))
+        else:
+            self.invoice_number_label.setText("Not set")
         
         # Notes
         notes = project["notes"] if "notes" in project.keys() else None

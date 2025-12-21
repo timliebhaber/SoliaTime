@@ -96,6 +96,7 @@ class ProjectsViewModel(QObject):
         start_date_ts: Optional[int] = None,
         invoice_sent: bool = False,
         invoice_paid: bool = False,
+        invoice_number: Optional[str] = None,
         notes: Optional[str] = None,
     ) -> int:
         """Create a new project.
@@ -109,6 +110,7 @@ class ProjectsViewModel(QObject):
             start_date_ts: Start date timestamp (optional)
             invoice_sent: Whether invoice has been sent
             invoice_paid: Whether invoice has been paid
+            invoice_number: Invoice number (optional)
             notes: Project notes
             
         Returns:
@@ -116,7 +118,7 @@ class ProjectsViewModel(QObject):
         """
         project_id = self.repo.create_project(
             profile_id, name, estimated_seconds, service_id, deadline_ts,
-            start_date_ts, invoice_sent, invoice_paid, notes
+            start_date_ts, invoice_sent, invoice_paid, invoice_number, notes
         )
         self._refresh_projects()
         self.select_project(project_id)
@@ -132,6 +134,7 @@ class ProjectsViewModel(QObject):
         start_date_ts: Optional[int],
         invoice_sent: bool,
         invoice_paid: bool,
+        invoice_number: Optional[str],
         notes: Optional[str],
     ) -> None:
         """Update project information.
@@ -145,11 +148,12 @@ class ProjectsViewModel(QObject):
             start_date_ts: Start date timestamp (can be None)
             invoice_sent: Whether invoice has been sent
             invoice_paid: Whether invoice has been paid
+            invoice_number: Invoice number (can be None)
             notes: Project notes
         """
         self.repo.update_project(
             project_id, name, estimated_seconds, service_id, deadline_ts,
-            start_date_ts, invoice_sent, invoice_paid, notes
+            start_date_ts, invoice_sent, invoice_paid, invoice_number, notes
         )
         self._refresh_projects()
     
