@@ -152,7 +152,7 @@ class ProjectDialog(QDialog):
         
         # Invoice number
         self.invoice_number_edit = QLineEdit(self)
-        self.invoice_number_edit.setPlaceholderText("e.g., INV-2024-001")
+        self.invoice_number_edit.setPlaceholderText("e.g., RE-")
         self.invoice_number_edit.setText(invoice_number)
         form.addRow("Invoice Number", self.invoice_number_edit)
         
