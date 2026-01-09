@@ -421,6 +421,7 @@ class Repository:
     def update_project(
         self,
         project_id: int,
+        profile_id: int,
         name: str,
         estimated_seconds: int | None,
         service_id: int | None,
@@ -435,6 +436,7 @@ class Repository:
         
         Args:
             project_id: Project ID
+            profile_id: Profile ID this project belongs to
             name: Project name
             estimated_seconds: Estimated time in seconds
             service_id: Service ID (can be None)
@@ -447,8 +449,8 @@ class Repository:
         """
         with self.conn:
             self.conn.execute(
-                "UPDATE projects SET name = ?, estimated_seconds = ?, service_id = ?, deadline_ts = ?, start_date_ts = ?, invoice_sent = ?, invoice_paid = ?, invoice_number = ?, notes = ? WHERE id = ?",
-                (name, estimated_seconds, service_id, deadline_ts, start_date_ts, 1 if invoice_sent else 0, 1 if invoice_paid else 0, invoice_number, notes, project_id),
+                "UPDATE projects SET profile_id = ?, name = ?, estimated_seconds = ?, service_id = ?, deadline_ts = ?, start_date_ts = ?, invoice_sent = ?, invoice_paid = ?, invoice_number = ?, notes = ? WHERE id = ?",
+                (profile_id, name, estimated_seconds, service_id, deadline_ts, start_date_ts, 1 if invoice_sent else 0, 1 if invoice_paid else 0, invoice_number, notes, project_id),
             )
 
     def delete_project(self, project_id: int) -> None:

@@ -353,6 +353,7 @@ class ProjectsView(QWidget):
         # Update only the notes (preserve other fields)
         self.viewmodel.update_project(
             project_id,
+            int(project["profile_id"]),
             str(project["name"]),
             int(project["estimated_seconds"]) if project.get("estimated_seconds") else None,
             int(project["service_id"]) if project.get("service_id") else None,
@@ -418,9 +419,10 @@ class ProjectsView(QWidget):
             if dlg.exec() != QDialog.DialogCode.Accepted:
                 return
             
+            profile_id = dlg.get_profile_id()
             name = dlg.get_name()
-            if not name:
-                QMessageBox.warning(self, "Invalid Input", "Please enter a project name.")
+            if not profile_id or not name:
+                QMessageBox.warning(self, "Invalid Input", "Please select a profile and enter a project name.")
                 return
             
             estimated_seconds = dlg.get_estimated_seconds()
@@ -433,7 +435,7 @@ class ProjectsView(QWidget):
             notes = dlg.get_notes()
             
             self.viewmodel.update_project(
-                project_id, name, estimated_seconds, service_id, deadline_ts,
+                project_id, profile_id, name, estimated_seconds, service_id, deadline_ts,
                 start_date_ts, invoice_sent, invoice_paid, invoice_number, notes
             )
             
@@ -586,7 +588,7 @@ class ProjectsView(QWidget):
         self.invoice_paid_check.setChecked(bool(invoice_paid))
         
         # Invoice number
-        invoice_number = project.get("invoice_number")
+        invoice_number = project["invoice_number"] if "invoice_number" in project.keys() else None
         if invoice_number is not None and invoice_number != "":
             self.invoice_number_label.setText(str(invoice_number))
         else:

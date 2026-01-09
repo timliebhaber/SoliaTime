@@ -127,6 +127,7 @@ class ProjectsViewModel(QObject):
     def update_project(
         self,
         project_id: int,
+        profile_id: int,
         name: str,
         estimated_seconds: Optional[int],
         service_id: Optional[int],
@@ -141,6 +142,7 @@ class ProjectsViewModel(QObject):
         
         Args:
             project_id: Project ID
+            profile_id: Profile ID this project belongs to
             name: Project name
             estimated_seconds: Estimated time in seconds
             service_id: Service ID (can be None)
@@ -152,7 +154,7 @@ class ProjectsViewModel(QObject):
             notes: Project notes
         """
         self.repo.update_project(
-            project_id, name, estimated_seconds, service_id, deadline_ts,
+            project_id, profile_id, name, estimated_seconds, service_id, deadline_ts,
             start_date_ts, invoice_sent, invoice_paid, invoice_number, notes
         )
         self._refresh_projects()

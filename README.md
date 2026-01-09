@@ -94,7 +94,7 @@ Key design patterns:
 Create a single-file Windows executable:
 
 ```bash
-pyinstaller SoliaTime.spec
+python -m PyInstaller SoliaTime.spec
 ```
 
 The executable will be available at `dist/SoliaTime.exe` - no installation required!
