@@ -247,13 +247,9 @@ class MainWindow(QMainWindow):
 
     def _connect_signals(self) -> None:
         """Connect signals between ViewModels and UI."""
-        # Dashboard navigation
+        # Dashboard navigation (middle tiles removed; projects, services, weekly, invoices via top nav only)
         self.dashboard_vm.navigate_to_timer.connect(lambda: self.stack.setCurrentIndex(1))
         self.dashboard_vm.navigate_to_profiles.connect(lambda: self.stack.setCurrentIndex(2))
-        self.dashboard_vm.navigate_to_projects.connect(lambda: self.stack.setCurrentIndex(3))
-        self.dashboard_vm.navigate_to_services.connect(lambda: self.stack.setCurrentIndex(4))
-        self.dashboard_vm.navigate_to_weekly.connect(lambda: self.stack.setCurrentIndex(5))
-        self.dashboard_vm.navigate_to_invoices.connect(lambda: self.stack.setCurrentIndex(6))
         self.dashboard_vm.navigate_to_vat_calculator.connect(lambda: self.stack.setCurrentIndex(7))
         
         # Profiles to Projects navigation

@@ -1,52 +1,63 @@
-"""Dashboard ViewModel - minimal, only navigation."""
+"""Dashboard ViewModel - navigation and message log."""
 from __future__ import annotations
+
+from datetime import datetime
+from typing import Any
 
 from PySide6.QtCore import QObject, Signal
 
 
 class DashboardViewModel(QObject):
     """ViewModel for the dashboard view.
-    
-    Dashboard is primarily for navigation, so this ViewModel is minimal.
+
+    Handles navigation and dashboard message log for display across the app.
     """
-    
-    # Navigation signals
+
+    # Navigation signals (middle tiles removed)
     navigate_to_timer = Signal()
     navigate_to_profiles = Signal()
-    navigate_to_projects = Signal()
-    navigate_to_services = Signal()
-    navigate_to_weekly = Signal()
-    navigate_to_invoices = Signal()
     navigate_to_vat_calculator = Signal()
-    
+
+    # Notify view when messages change
+    messages_updated = Signal()
+
     def __init__(self) -> None:
         """Initialize dashboard ViewModel."""
         super().__init__()
-    
+        self._messages: list[dict[str, Any]] = []
+        self.add_message("SoliaTime initialized successfully", "info")
+
+    def get_messages(self) -> list[dict[str, Any]]:
+        """Return a copy of the message history for display.
+
+        Returns:
+            List of dicts with keys: text, timestamp, message_type
+        """
+        return list(self._messages)
+
+    def add_message(self, text: str, message_type: str = "info") -> None:
+        """Append a message to the log and notify the view.
+
+        Args:
+            text: Message content
+            message_type: Optional type (info, warning, error, success)
+        """
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self._messages.append({
+            "text": text,
+            "timestamp": timestamp,
+            "message_type": message_type,
+        })
+        self.messages_updated.emit()
+
     def request_navigate_to_timer(self) -> None:
         """Request navigation to timer view."""
         self.navigate_to_timer.emit()
-    
+
     def request_navigate_to_profiles(self) -> None:
         """Request navigation to profiles view."""
         self.navigate_to_profiles.emit()
-    
-    def request_navigate_to_projects(self) -> None:
-        """Request navigation to projects view."""
-        self.navigate_to_projects.emit()
-    
-    def request_navigate_to_services(self) -> None:
-        """Request navigation to services view."""
-        self.navigate_to_services.emit()
-    
-    def request_navigate_to_weekly(self) -> None:
-        """Request navigation to weekly view."""
-        self.navigate_to_weekly.emit()
-    
-    def request_navigate_to_invoices(self) -> None:
-        """Request navigation to invoices view."""
-        self.navigate_to_invoices.emit()
-    
+
     def request_navigate_to_vat_calculator(self) -> None:
         """Request navigation to VAT calculator view."""
         self.navigate_to_vat_calculator.emit()
