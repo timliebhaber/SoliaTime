@@ -62,7 +62,7 @@ def main() -> int:
     timer_service = TimerService(state_service)
     
     # Create ViewModels
-    dashboard_vm = DashboardViewModel()
+    dashboard_vm = DashboardViewModel(state_service)
     timer_vm = TimerViewModel(state_service, timer_service)
     profiles_vm = ProfilesViewModel(state_service, timer_service)
     projects_vm = ProjectsViewModel(state_service)
