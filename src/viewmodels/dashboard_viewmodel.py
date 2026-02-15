@@ -74,12 +74,28 @@ class DashboardViewModel(QObject):
         self.navigate_to_vat_calculator.emit()
 
     def get_calendar_events(self) -> dict[str, str]:
-        """Return calendar day annotations (date_str -> text). Empty for now.
+        """Return calendar day annotations with project deadlines.
 
         Returns:
-            Dict mapping YYYY-MM-DD to annotation text.
+            Dict mapping YYYY-MM-DD to annotation text (project names with deadlines on that day).
         """
-        return {}
+        if not self._state_service:
+            return {}
+        
+        repo = self._state_service.repository
+        projects = repo.list_projects()
+        events: dict[str, list[str]] = {}
+        
+        for proj in projects:
+            deadline_ts = proj["deadline_ts"]
+            if deadline_ts:
+                deadline_date = datetime.utcfromtimestamp(deadline_ts).date().isoformat()
+                if deadline_date not in events:
+                    events[deadline_date] = []
+                events[deadline_date].append(proj["name"])
+        
+        # Format: join multiple project names with newline
+        return {date_str: "\n".join(names) for date_str, names in events.items()}
 
     def get_invoice_chart_data(self) -> list[tuple[str, float]]:
         """Return last 12 months of invoice amounts for the chart.

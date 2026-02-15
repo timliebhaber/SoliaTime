@@ -81,15 +81,18 @@ class InvoiceGraph(QFrame):
         font.setPointSize(8)
         painter.setFont(font)
 
-        # Y-axis labels and grid (e.g. 5 steps)
-        steps = 5
-        for i in range(steps + 1):
-            y_ratio = 1.0 - (i / steps)
+        # Y-axis labels and grid (500€ steps)
+        step_amount = 500.0
+        max_steps = int(max_val / step_amount) + 1
+        grid_max = max_steps * step_amount
+        
+        for i in range(max_steps + 1):
+            amount = i * step_amount
+            y_ratio = 1.0 - (amount / grid_max)
             y = margin_top + y_ratio * chart_h
-            amount = y_ratio * max_val
-            label = f"€{amount:,.0f}" if amount >= 1000 else f"€{amount:,.1f}"
+            label = f"€{int(amount)}"
             painter.drawText(QRectF(0, y - 8, margin_left - 4, 16), Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, label)
-            if i > 0 and i < steps:
+            if i > 0:
                 painter.drawLine(int(margin_left), int(y), int(margin_left + chart_w), int(y))
 
         # X-axis and labels
@@ -103,7 +106,7 @@ class InvoiceGraph(QFrame):
         for i in range(n):
             v = self._data[i][1]
             x = margin_left + (i + 0.5) / max(n, 1) * chart_w
-            y = margin_top + (1.0 - v / max_val) * chart_h
+            y = margin_top + (1.0 - v / grid_max) * chart_h
             points.append(QPointF(x, y))
 
         if len(points) >= 2:

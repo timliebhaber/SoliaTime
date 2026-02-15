@@ -34,7 +34,7 @@ class WeekCalendar(QFrame):
         super().__init__(parent)
         self.setFrameShape(QFrame.StyledPanel)
         self.setFrameShadow(QFrame.Raised)
-        self.setMinimumHeight(100)
+        self.setMinimumHeight(180)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setStyleSheet("""
             WeekCalendar {
@@ -79,7 +79,7 @@ class WeekCalendar(QFrame):
             annotation_label = QLabel("")
             annotation_label.setStyleSheet("color: rgba(255,255,255,0.8); font-size: 10px;")
             annotation_label.setWordWrap(True)
-            annotation_label.setMaximumHeight(32)
+            annotation_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
             day_layout.addWidget(annotation_label, 2, 0)
 
             layout.addWidget(day_frame, 0, col)
