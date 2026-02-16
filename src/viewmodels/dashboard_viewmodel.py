@@ -97,14 +97,14 @@ class DashboardViewModel(QObject):
         # Format: join multiple project names with newline
         return {date_str: "\n".join(names) for date_str, names in events.items()}
 
-    def get_invoice_chart_data(self) -> list[tuple[str, float]]:
+    def get_invoice_chart_data(self) -> list[tuple[str, float, int]]:
         """Return last 12 months of invoice amounts for the chart.
 
         Amounts are computed from time entries on invoiced projects (invoice_sent or invoice_paid)
         using project service rate. Grouped by month of entry end_ts.
 
         Returns:
-            List of (month_label, amount_euros) e.g. [("Jan 2026", 150.0), ...]
+            List of (month_abbr, amount_euros, year) e.g. [("Jan", 150.0, 2026), ...]
         """
         if not self._state_service:
             return self._empty_chart_months()
@@ -140,22 +140,22 @@ class DashboardViewModel(QObject):
                     month_totals[month_key] += amount_euros
 
         # Last 12 months in chronological order (oldest first)
-        result: list[tuple[str, float]] = []
+        result: list[tuple[str, float, int]] = []
         for i in range(11, -1, -1):
             d = now - timedelta(days=30 * i)
             key = d.strftime("%Y-%m")
             year = d.year
             month_num = d.month
-            label = f"{month_abbr[month_num]} {year}"
-            result.append((label, month_totals.get(key, 0.0)))
+            label = month_abbr[month_num]
+            result.append((label, month_totals.get(key, 0.0), year))
         return result
 
-    def _empty_chart_months(self) -> list[tuple[str, float]]:
+    def _empty_chart_months(self) -> list[tuple[str, float, int]]:
         """Return 12 month labels with zero amounts when no data."""
-        result: list[tuple[str, float]] = []
+        result: list[tuple[str, float, int]] = []
         now = datetime.now()
         for i in range(11, -1, -1):
             d = now - timedelta(days=30 * i)
-            result.append((f"{month_abbr[d.month]} {d.year}", 0.0))
+            result.append((month_abbr[d.month], 0.0, d.year))
         return result
 
