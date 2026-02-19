@@ -8,7 +8,7 @@ from src.views.main_window import MainWindow
 warnings.warn(
     "Importing MainWindow from src.ui.main_window is deprecated. "
     "Import from src.views.main_window instead. "
-    "The application has been refactored to MVVM architecture.",
+    "The application has been refactored to the MVVM architecture.",
     DeprecationWarning,
     stacklevel=2,
 )
