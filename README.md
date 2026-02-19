@@ -6,17 +6,17 @@
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![PySide6](https://img.shields.io/badge/PySide6-6.6+-green.svg)](https://pypi.org/project/PySide6/)
 
-## Features
+## ✨ Features
 
-### Core Functionality
+### 🎯 Core Functionality
 
-- **Smart Timer** - Start/stop time tracking with a single click
-- **Profile Management** - Organize time by clients with comprehensive contact information
-- **Project Tracking** - Track time against specific projects with deadlines, estimates, and invoice tracking
-- **Service Management** - Define billable services with custom hourly rates and time estimates
-- **Dashboard** - Modern tile-based navigation for quick access to all features
+- **⏱️ Smart Timer** - Start/stop time tracking with a single click
+- **👥 Profile Management** - Organize time by clients with comprehensive contact information
+- **📋 Project Tracking** - Track time against specific projects with deadlines, estimates, and invoice tracking
+- **💼 Service Management** - Define billable services with custom hourly rates and time estimates
+- **🏠 Dashboard** - Modern tile-based navigation for quick access to all features
 
-### Time Management
+### 📅 Time Management
 
 - **Active Timer Display** - Real-time elapsed time counter with circular progress indicator
 - **Weekly Overview** - View time tracked by calendar week (CW) with start/end dates and totals
@@ -25,7 +25,7 @@
 - **Running Totals** - Automatic calculation of time spent per profile, project, and service
 - **Multi-Week Tracking** - Track and review time across multiple calendar weeks
 
-### Advanced Features
+### 🔧 Advanced Features
 
 - **Inline Editing** - Double-click any cell to edit timestamps, notes, profiles, or projects directly in tables
 - **Smart Export** - Export to CSV/JSON with optional profile/project filtering
@@ -37,7 +37,7 @@
 - **Keyboard Shortcuts** - Space to toggle timer, Ctrl+N for new profile, Delete to remove entries
 - **Context Menus** - Right-click menus for quick actions on profiles, projects, and entries
 
-### Profile Management
+### 📈 Profile Management
 
 - **Contact Information** - Store contact person, email, phone, and business address
 - **Profile Notes** - Add custom notes for each client/profile
@@ -47,7 +47,7 @@
 - **Profile Duplication** - Quickly duplicate profiles with all settings
 - **Safe Deletion** - Delete profiles with cascade deletion of associated data
 
-### Project Features
+### 📋 Project Features
 
 - **Project Details** - Track project name, profile, estimated time, service, deadlines, and start dates
 - **Invoice Tracking** - Mark invoice sent/paid status and store invoice numbers
@@ -58,7 +58,7 @@
 - **Time Estimates** - Set estimated time in HH:MM format per project
 - **Service Association** - Link projects to specific services for rate tracking
 
-### Service Catalog
+### 💼 Service Catalog
 
 - **Hourly Rates** - Define service rates in EUR (stored as cents for precision)
 - **Service Estimates** - Set estimated time per service in HH:MM format
@@ -66,7 +66,7 @@
 - **Service Table** - Clean table view showing service name, rate, and estimates
 - **Project Integration** - Services can be assigned to projects for billing
 
-### Data Management
+### 🗄️ Data Management
 
 - **CSV Export** - Export entries with formatted timestamps [DD.MM.YY] - HH:MM and durations HH:MM:SS
 - **JSON Export** - Export with full data including IDs, timestamps (Unix), and metadata
@@ -76,7 +76,7 @@
 - **Time Entry Auditing** - Complete history with profile, project, start, end, duration, and notes
 - **Tag Support** - Tag entries for additional organization (stored in database)
 
-## Architecture
+## 🏗️ Architecture
 
 Built with clean **MVVM architecture** (Model-View-ViewModel) for maintainability and testability:
 
@@ -98,7 +98,7 @@ Key design patterns:
 - **Signal-based communication** for loose coupling
 - **Dependency Injection** for testability
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -125,7 +125,7 @@ Key design patterns:
    python -m src.app
    ```
 
-### Building Standalone Executable
+### 📦 Building Standalone Executable
 
 Create a single-file Windows executable:
 
@@ -135,7 +135,7 @@ python -m PyInstaller SoliaTime.spec
 
 The executable will be available at `dist/SoliaTime.exe` - no installation required!
 
-## Usage
+## 💡 Usage
 
 ### Quick Start
 
@@ -148,7 +148,7 @@ The executable will be available at `dist/SoliaTime.exe` - no installation requi
 7. **Export Data** - Use File menu to export filtered data to CSV or JSON
 8. **Review Weekly** - Check "Weekly" view for calendar week summaries
 
-### Detailed Workflows
+### 📖 Detailed Workflows
 
 #### Profile Management
 1. Add profiles with full contact information (name, person, email, phone, address)
@@ -184,7 +184,7 @@ The executable will be available at `dist/SoliaTime.exe` - no installation requi
 5. Results auto-update bidirectionally
 6. German number format supported (comma as decimal separator)
 
-### Keyboard Shortcuts
+### ⌨️ Keyboard Shortcuts
 
 | Shortcut | Action                     |
 | -------- | -------------------------- |
@@ -193,21 +193,21 @@ The executable will be available at `dist/SoliaTime.exe` - no installation requi
 | `Delete` | Delete selected entries    |
 | `Enter`  | Edit todo/entry (on focus) |
 
-### Navigation
+### 🧭 Navigation
 
 The dashboard provides quick access to all modules:
 
-| Module   | Description                                                                      |
-| -------- | -------------------------------------------------------------------------------- |
-| Timer    | Time tracking with start/stop controls, real-time display, and entry management |
-| Profiles | Client/profile management with full contact details, notes, and associated todos |
-| Projects | Project tracking with deadlines, estimates, invoice status, and project todos    |
-| Services | Service catalog with hourly rates and time estimates                            |
-| Weekly   | Weekly time summaries by calendar week (CW) with date ranges and totals         |
-| Invoices | Invoice management (Coming Soon)                                                 |
-| MwSt     | Beautiful German VAT calculator with 19%/7% rates and bidirectional calculation  |
+| Module      | Description                                                                      |
+| ----------- | -------------------------------------------------------------------------------- |
+| ⏱️ Timer    | Time tracking with start/stop controls, real-time display, and entry management |
+| 👥 Profiles | Client/profile management with full contact details, notes, and associated todos |
+| 📋 Projects | Project tracking with deadlines, estimates, invoice status, and project todos    |
+| 💼 Services | Service catalog with hourly rates and time estimates                            |
+| 📅 Weekly   | Weekly time summaries by calendar week (CW) with date ranges and totals         |
+| 📄 Invoices | Invoice management (Coming Soon)                                                 |
+| 🧮 MwSt     | Beautiful German VAT calculator with 19%/7% rates and bidirectional calculation  |
 
-### Export Formats
+### 📤 Export Formats
 
 **CSV Export:**
 
@@ -246,14 +246,14 @@ ClientB,—,[21.10.25] - 14:00,[21.10.25] - 15:45,01:45:00,Consultation,
 - Duration in seconds for precise calculations
 - Null-safe project fields (null if not assigned)
 
-## Data Storage
+## 🗄️ Data Storage
 
 All data is stored locally in an SQLite database with a robust schema:
 
 - **Database**: `%LOCALAPPDATA%/Solia/data/solia.db`
 - **Settings**: `%LOCALAPPDATA%/Solia/settings.json`
 
-### Database Schema
+### 📊 Database Schema
 
 The application uses a normalized relational database with the following tables:
 
@@ -271,7 +271,7 @@ The application uses a normalized relational database with the following tables:
 - Indexed for fast queries on profiles and date ranges
 - Your data never leaves your machine!
 
-## Technology Stack
+## 🛠️ Technology Stack
 
 | Component    | Technology                                                   |
 | ------------ | ------------------------------------------------------------ |
@@ -281,7 +281,7 @@ The application uses a normalized relational database with the following tables:
 | Architecture | MVVM (Model-View-ViewModel)                                  |
 | Language     | Python 3.10+                                                 |
 
-### Dependencies
+### 📦 Dependencies
 
 - **PySide6** - Qt bindings for Python
 - **appdirs** - Platform-specific application directories
@@ -289,11 +289,11 @@ The application uses a normalized relational database with the following tables:
 - **typing-extensions** - Type hint support
 - **watchfiles** - File watching for development
 
-## License
+## 📝 License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
-## Contributing
+## 🤝 Contributing
 
 Contributions are welcome! Feel free to:
 
@@ -301,7 +301,7 @@ Contributions are welcome! Feel free to:
 - Suggest new features
 - Submit pull requests
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 Built with:
 
