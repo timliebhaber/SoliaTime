@@ -151,7 +151,7 @@ class DashboardViewModel(QObject):
         return result
 
     def _empty_chart_months(self) -> list[tuple[str, float, int]]:
-        """Return 12 month labels with zero amounts when no data."""
+        """Return 12 month labels with zero amounts when noo data."""
         result: list[tuple[str, float, int]] = []
         now = datetime.now()
         for i in range(11, -1, -1):
